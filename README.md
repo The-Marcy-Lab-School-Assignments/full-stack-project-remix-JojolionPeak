@@ -64,11 +64,11 @@ git clone <your-repo-url>
 cd personal-finance-tracker
 ```
 
-**2. The project has two top-level directories** — `frontend/` and `server/`. Each has its own `package.json`.
+**2. The project has two top-level directories** — `client/` and `server/`. Each has its own `package.json`.
 
 ```
 personal-finance-tracker/
-├── frontend/                     # React + Vite frontend
+├── client/                     # React + Vite frontend
 │   ├── public/
 │   ├── src/
 │   │   ├── assets/
@@ -112,10 +112,10 @@ cd server
 npm install
 ```
 
-**4. Install frontend dependencies:**
+**4. Install client dependencies:**
 
 ```sh
-cd frontend
+cd client
 npm install
 ```
 
@@ -150,7 +150,7 @@ npm run dev
 In another terminal (frontend):
 
 ```sh
-cd frontend
+cd client
 npm run dev
 ```
 
@@ -170,7 +170,7 @@ The server follows a strict Model-View-Controller pattern:
 
 ### Frontend — React + Vite
 
-The frontend is organized by feature:
+The client is organized by feature:
 
 - **`pages/`** — Top-level route components (`LoginPage`, `DashboardPage`, `TransactionsPage`, `CategoriesPage`)
 - **`components/`** — Reusable UI components (`TransactionCard`, `SummaryMetric`, `TimeframePicker`, `TransactionForm`, etc.)
@@ -310,7 +310,8 @@ This app uses **Google OAuth 2.0** via Passport.js (`passport-google-oauth20`). 
 3. Passport exchanges the code for a profile, finds or creates the user in the database, then issues a **signed JWT**
 4. The JWT is sent to the client as an `HttpOnly` cookie
 5. All protected routes verify the JWT via the `authenticate` middleware
-   Store the user's `id` (UUID) in the JWT payload. The `authenticate` middleware should attach the decoded user to `req.user`.
+
+Store the user's `id` (UUID) in the JWT payload. The `authenticate` middleware should attach the decoded user to `req.user`.
 
 ### JWT vs. Sessions
 
@@ -345,7 +346,7 @@ For auth-protected endpoints, complete the Google OAuth flow in the browser, the
 
 ## Phase 4: Frontend
 
-Build the React frontend in `frontend/src/`. The frontend communicates exclusively with the Express API — no direct database access.
+Build the React frontend in `client/src/`. The frontend communicates exclusively with the Express API — no direct database access.
 
 ### Pages
 
@@ -358,7 +359,7 @@ Build the React frontend in `frontend/src/`. The frontend communicates exclusive
 
 The timeframe picker lives in a persistent header or sidebar. Selecting a new timeframe (day / week / month / year / all-time) updates a global context value. All dashboard components re-fetch when the timeframe changes.
 
-Date boundaries are calculated in `utils/dateRanges.js` on the frontend and sent as `?from=` and `?to=` query parameters to the API.
+Date boundaries are calculated in `utils/dateRanges.js` on the client and sent as `?from=` and `?to=` query parameters to the API.
 
 ### Phase 4 Success Checks
 
@@ -662,7 +663,7 @@ JWT_EXPIRES_IN=7d
 
 # Server
 PORT=3000
-FRONTEND_URL=http://localhost:5173
+CLIENT_URL=http://localhost:5173
 NODE_ENV=development
 ```
 

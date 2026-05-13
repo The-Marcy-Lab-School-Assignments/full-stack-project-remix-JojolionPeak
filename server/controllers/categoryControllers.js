@@ -1,4 +1,4 @@
-const todoModel = require('../models/todoModel');
+const todoModel = require("../models/todoModel");
 
 module.exports.listTodos = async (req, res, next) => {
   try {
@@ -7,32 +7,35 @@ module.exports.listTodos = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+  //GET /api/categories - returns global default categories and user's personal categories, auth req
 };
 
 module.exports.createTodo = async (req, res, next) => {
   try {
     const { title } = req.body;
-    if (!title) return res.status(400).send({ error: 'Title is required.' });
+    if (!title) return res.status(400).send({ error: "Title is required." });
     const todo = await todoModel.create(title, req.session.user_id);
     res.status(201).send(todo);
   } catch (err) {
     next(err);
   }
+  //POST /api/categories - creates a custom category for the user, auth req
 };
 
 module.exports.updateTodo = async (req, res, next) => {
   try {
     const { todo_id } = req.params;
     const todo = await todoModel.find(todo_id);
-    if (!todo) return res.status(404).send({ error: 'Todo not found.' });
+    if (!todo) return res.status(404).send({ error: "Todo not found." });
     if (todo.user_id !== req.session.user_id) {
-      return res.status(403).send({ error: 'Not authorized.' });
+      return res.status(403).send({ error: "Not authorized." });
     }
     const updatedTodo = await todoModel.update(todo_id, req.body);
     res.send(updatedTodo);
   } catch (err) {
     next(err);
   }
+  //Get rid of this, unnecessary
 };
 
 module.exports.deleteTodo = async (req, res, next) => {
@@ -41,9 +44,9 @@ module.exports.deleteTodo = async (req, res, next) => {
 
     // First find the todo to verify ownership
     const todo = await todoModel.find(todo_id);
-    if (!todo) return res.status(404).send({ error: 'Todo not found.' });
+    if (!todo) return res.status(404).send({ error: "Todo not found." });
     if (todo.user_id !== req.session.user_id) {
-      return res.status(403).send({ error: 'Not authorized.' });
+      return res.status(403).send({ error: "Not authorized." });
     }
 
     // Destroy the todo only after ownership has been verified
@@ -52,4 +55,5 @@ module.exports.deleteTodo = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+  //DELETE /api/categories/:id - deletes a user created category, owner only, global categories cannot be deleted
 };
