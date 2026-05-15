@@ -162,6 +162,11 @@ app.delete(
 // Summary / Dashboard (all auth-required)
 app.get("/api/summary", authenticate, summaryControllers.getSummary);
 app.get(
+  "/api/summary/range",
+  authenticate,
+  summaryControllers.getSummaryByRange
+);
+app.get(
   "/api/summary/by-category",
   authenticate,
   summaryControllers.getSummaryByCategory

@@ -3,6 +3,7 @@
  *
  * GET /api/summary              — totals, % change, top 5 purchases
  * GET /api/summary/by-category  — spending breakdown by category
+ * GET /api/summary/range        — totals + breakdown for a custom date window
  */
 
 const transactionModel = require("../models/transactionModel");
@@ -133,7 +134,8 @@ const getSummary = async (req, res, next) => {
       transactionModel.topExpenses(userId, currentFrom, currentTo, 5),
     ]);
 
-    const currentNetFlow = currentAgg.totalIncome - currentAgg.totalExpenses;
+    // FIX: totalExpenses is already negative, so use addition to get true net
+    const currentNetFlow = currentAgg.totalIncome + currentAgg.totalExpenses;
 
     // Previous period (null for all-time)
     let previousAgg = null;
@@ -147,8 +149,10 @@ const getSummary = async (req, res, next) => {
         previousFrom,
         previousTo
       );
+
+      // FIX: same signed-amount correction for previous period
       const previousNetFlow =
-        previousAgg.totalIncome - previousAgg.totalExpenses;
+        previousAgg.totalIncome + previousAgg.totalExpenses;
 
       expensePctChange = percentChange(
         currentAgg.totalExpenses,
@@ -177,8 +181,9 @@ const getSummary = async (req, res, next) => {
             to: previousTo,
             totalExpenses: previousAgg.totalExpenses,
             totalIncome: previousAgg.totalIncome,
+            // FIX: same signed-amount correction in the response shape
             netFlow: parseFloat(
-              (previousAgg.totalIncome - previousAgg.totalExpenses).toFixed(2)
+              (previousAgg.totalIncome + previousAgg.totalExpenses).toFixed(2)
             ),
           }
         : null,
@@ -215,4 +220,57 @@ const getSummaryByCategory = async (req, res, next) => {
   }
 };
 
-module.exports = { getSummary, getSummaryByCategory };
+/**
+ * GET /api/summary/range
+ * Query params: from (required), to (required)
+ *
+ * Returns totals, net savings, transaction count, top 5 expenses,
+ * and a full category breakdown for any arbitrary date window.
+ * Unlike GET /api/summary, there is no "previous period" comparison —
+ * the caller controls the window entirely.
+ */
+const getSummaryByRange = async (req, res, next) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res
+        .status(400)
+        .json({ error: "from and to query parameters are required (YYYY-MM-DD)." });
+    }
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(from) || !dateRegex.test(to)) {
+      return res
+        .status(400)
+        .json({ error: "from and to must be valid dates in YYYY-MM-DD format." });
+    }
+
+    if (new Date(from) > new Date(to)) {
+      return res
+        .status(400)
+        .json({ error: "from must not be later than to." });
+    }
+
+    const [totals, byCategory, topExpensesList] = await Promise.all([
+      transactionModel.aggregateByDateRange(req.user.id, from, to),
+      transactionModel.aggregateByCategory(req.user.id, from, to),
+      transactionModel.topExpenses(req.user.id, from, to, 5),
+    ]);
+
+    res.json({
+      from,
+      to,
+      totalIncome:      totals.totalIncome,
+      totalExpenses:    totals.totalExpenses,
+      netSavings:       totals.totalIncome + totals.totalExpenses,
+      transactionCount: totals.transactionCount,
+      topExpenses:      topExpensesList,
+      byCategory,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { getSummary, getSummaryByCategory, getSummaryByRange };

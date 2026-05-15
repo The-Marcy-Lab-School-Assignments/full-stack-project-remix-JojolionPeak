@@ -86,6 +86,23 @@ const createTables = `
     created_at           TIMESTAMPTZ    DEFAULT NOW(),
     updated_at           TIMESTAMPTZ    DEFAULT NOW()
   );
+
+   -- ─── Indexes ───────────────────────────────────────────────────────────────
+
+  -- Optimizes:
+  -- WHERE user_id = ?
+  -- ORDER BY date DESC
+  -- LIMIT pagination
+  CREATE INDEX idx_transactions_user_date
+  ON transactions(user_id, date DESC);
+
+  -- Optimizes account lookups by user
+  CREATE INDEX idx_accounts_user
+  ON accounts(user_id);
+
+  -- Optimizes joins/filtering by account_id
+  CREATE INDEX idx_transactions_account
+  ON transactions(account_id);
 `;
 
 // ─── Global Default Categories ────────────────────────────────────────────────

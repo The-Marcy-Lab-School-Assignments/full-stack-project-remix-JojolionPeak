@@ -149,7 +149,7 @@ const topExpenses = async (userId, from, to, limit = 5) => {
        AND t.type    = 'expense'
        AND t.date   >= $2
        AND t.date   <= $3
-     ORDER BY t.amount DESC
+     ORDER BY t.amount ASC
      LIMIT $4`,
     [userId, from, to, limit]
   );
@@ -207,11 +207,12 @@ const aggregateByCategory = async (userId, from, to, type) => {
 
   const { rows } = await pool.query(
     `WITH totals AS (
-       SELECT COALESCE(SUM(amount), 0) AS grand_total
+       SELECT COALESCE(SUM(ABS(amount)), 0) AS grand_total
        FROM transactions t
        WHERE t.user_id = $1
          AND t.date >= $2
          AND t.date <= $3
+         AND t.category_id IS NOT NULL
          ${typeFilter}
      )
      SELECT
@@ -219,17 +220,18 @@ const aggregateByCategory = async (userId, from, to, type) => {
        c.icon,
        c.color,
        c.type,
-       COALESCE(SUM(t.amount), 0)                             AS total,
+       COALESCE(SUM(ABS(t.amount)), 0)                        AS total,
        ROUND(
-         COALESCE(SUM(t.amount), 0) / NULLIF(totals.grand_total, 0) * 100,
+         COALESCE(SUM(ABS(t.amount)), 0) / NULLIF(totals.grand_total, 0) * 100,
          2
        )                                                       AS percentage
      FROM transactions t
-     LEFT JOIN categories c ON t.category_id = c.id
+     INNER JOIN categories c ON t.category_id = c.id
      CROSS JOIN totals
      WHERE t.user_id = $1
        AND t.date >= $2
        AND t.date <= $3
+       AND t.category_id IS NOT NULL
        ${typeFilter}
      GROUP BY c.id, c.name, c.icon, c.color, c.type, totals.grand_total
      ORDER BY total DESC`,
@@ -241,7 +243,7 @@ const aggregateByCategory = async (userId, from, to, type) => {
     icon: r.icon,
     color: r.color,
     type: r.type,
-    total: parseFloat(r.total),
+    total: parseFloat(r.total),       // always positive — ABS applied in SQL
     percentage: parseFloat(r.percentage),
   }));
 };

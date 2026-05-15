@@ -101,23 +101,29 @@ const createTransaction = async (req, res, next) => {
       authorized_date,
     } = req.body;
 
+    if (isNaN(parseFloat(amount)) || parseFloat(amount) === 0) {
+      return res
+        .status(400)
+        .json({ error: "Amount must be a non-zero number!" });
+    }
+
     if (!amount || !type || !date) {
       return res
         .status(400)
-        .json({ error: "amount, type, and date are required." });
+        .json({ error: "Amount, Type, and Date are required!" });
     }
 
     if (!VALID_TYPES.includes(type)) {
       return res
         .status(400)
-        .json({ error: `type must be one of: ${VALID_TYPES.join(", ")}.` });
+        .json({ error: `Type must be one of: ${VALID_TYPES.join(", ")}!` });
     }
 
-    if (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      return res
-        .status(400)
-        .json({ error: "amount must be a positive number." });
-    }
+    // if (isNaN(parseFloat(amount)) || parseFloat(amount) === 0) {
+    //   return res
+    //     .status(400)
+    //     .json({ error: "Amount must be a non-zero number!" });
+    // }
 
     if (status && !VALID_STATUSES.includes(status)) {
       return res
@@ -199,11 +205,11 @@ const updateTransaction = async (req, res, next) => {
 
     if (
       amount !== undefined &&
-      (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0)
+      (isNaN(parseFloat(amount)) || parseFloat(amount) === 0)
     ) {
       return res
         .status(400)
-        .json({ error: "amount must be a positive number." });
+        .json({ error: "amount must be a non-zero number." });
     }
 
     const updated = await transactionModel.update(id, {

@@ -31,7 +31,7 @@ const findByGoogleId = async (googleId) => {
  */
 const findById = async (id) => {
   const { rows } = await pool.query(
-    `SELECT id, google_id, email, display_name AS "displayName", avatar_url AS "avatarUrl", created_at AS "createdAt"
+    `SELECT id, email, display_name AS "displayName", avatar_url AS "avatarUrl", created_at AS "createdAt"
      FROM users
      WHERE id = $1`,
     [id]
