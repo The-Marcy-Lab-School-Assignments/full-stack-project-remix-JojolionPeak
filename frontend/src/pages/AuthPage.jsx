@@ -48,7 +48,7 @@ export default function AuthPage({ onLoginSuccess }) {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:3000/auth/google";
+    window.location.href = "/auth/google";
   };
 
   return (
