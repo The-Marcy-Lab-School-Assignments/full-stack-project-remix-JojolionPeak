@@ -194,6 +194,20 @@ app.delete(
   categoryControllers.deleteCategory
 );
 
+// ─── Serve Frontend ────────────────────────────────────────────────────────────
+//
+// Express serves the Vite-built React app from frontend/dist.
+// Any request that didn't match an /api route above gets index.html,
+// letting React Router handle client-side navigation.
+
+const path = require("path");
+
+app.use(express.static(path.join(__dirname, "../frontend/dist")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/dist", "index.html"));
+});
+
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 
 app.use((req, res) => {
