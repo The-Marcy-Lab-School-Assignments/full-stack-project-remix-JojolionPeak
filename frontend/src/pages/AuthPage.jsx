@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { api } from "../api/api";
 import BackgroundVideo from "../components/BackgroundVideo";
 
 export default function AuthPage({ onLoginSuccess }) {
-  const navigate = useNavigate();
   const [mode, setMode] = useState("login");
 
   const [form, setForm] = useState({ displayName: "", email: "", password: "" });
@@ -39,7 +37,6 @@ export default function AuthPage({ onLoginSuccess }) {
         });
       }
       onLoginSuccess?.();
-      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || "Something went wrong.");
     } finally {

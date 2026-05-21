@@ -23,7 +23,8 @@ export default function App() {
 
   const handleLoaderDone = useCallback(() => {
     setShowLoader(false);
-  }, []);
+    navigate("/dashboard", { replace: true });
+  }, [navigate]);
 
   const handleLogout = useCallback(() => {
     suppressNext.current = true;
