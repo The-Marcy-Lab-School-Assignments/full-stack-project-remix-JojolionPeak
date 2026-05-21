@@ -27,18 +27,16 @@ const cookieOptions = {
 };
 
 /**
- * Build and sign a JWT containing the user's public profile fields.
- * @param {object} user — { id, email, displayName, avatarUrl }
+ * Build and sign a JWT containing only the user's id.
+ * Keeping the payload minimal ensures the cookie stays well under
+ * the 4 kb browser limit — especially important when avatarUrl is
+ * a large base64 string rather than a URL.
+ * @param {object} user — { id }
  * @returns {string} signed JWT
  */
 const signToken = (user) =>
   jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
-    },
+    { id: user.id },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
   );
