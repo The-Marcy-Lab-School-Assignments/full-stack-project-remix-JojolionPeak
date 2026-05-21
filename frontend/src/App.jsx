@@ -21,8 +21,8 @@ export default function App() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const suppressNext = useRef(false);
+  const pendingNav = useRef(null);
 
-  // On mount, check if a valid session cookie already exists
   useEffect(() => {
     api.get("/api/auth/me")
       .then(() => setAuthed(true))
@@ -32,22 +32,25 @@ export default function App() {
 
   const handleLoginSuccess = useCallback(() => {
     setAuthed(true);
+    pendingNav.current = "/dashboard";
     setShowLoader(true);
   }, []);
 
   const handleLoaderDone = useCallback(() => {
     setShowLoader(false);
-    navigate("/dashboard", { replace: true });
+    suppressNext.current = true;
+    if (pendingNav.current) {
+      navigate(pendingNav.current, { replace: true });
+      pendingNav.current = null;
+    }
   }, [navigate]);
 
   const handleLogout = useCallback(() => {
     setAuthed(false);
-    suppressNext.current = true;
+    pendingNav.current = "/auth";
     setShowLoader(true);
-    navigate("/auth", { replace: true });
-  }, [navigate]);
+  }, []);
 
-  // Don't render routes until we know whether the user is authed
   if (!authChecked) return null;
 
   return (
