@@ -1,7 +1,7 @@
 {
   "name": "finance-tracker-server",
   "version": "1.0.0",
-  "description": "Express API for the Personal Finance Tracker",
+  "description": "Express API for the Mementos project",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
