@@ -115,9 +115,8 @@ passport.use(
             avatarUrl,
           });
         } else {
-          if (!user.avatarUrl) {
-            user = await userModel.updateUser(user.id, { avatarUrl });
-          }
+          // Refresh the avatar URL on every login so stale URLs self-heal
+          user = await userModel.updateUser(user.id, { avatarUrl });
         }
 
         done(null, user);
