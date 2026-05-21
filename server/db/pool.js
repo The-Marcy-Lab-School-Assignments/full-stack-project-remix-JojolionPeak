@@ -1,16 +1,22 @@
-const { Pool } = require('pg');
-require('dotenv').config();
+const { Pool } = require("pg");
+require("dotenv").config();
 
-// A pool maintains a set of connections to the database that remain open and
-// can be dynamically allocated each time we send a query. This is more efficient
-// than opening and closing a new connection on every request.
-// The pg library reads PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE from the
-// environment automatically — no explicit config needed for local development.
-// In production, PG_CONNECTION_STRING overrides all of them.
-const pool = new Pool(
-  process.env.PG_CONNECTION_STRING
-    ? { connectionString: process.env.PG_CONNECTION_STRING }
-    : {}
-);
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+});
+
+// Surface connection errors immediately rather than silently failing on first query
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error("❌  Failed to connect to PostgreSQL:", err.message);
+    process.exit(1);
+  }
+  console.log("✅  Connected to PostgreSQL:", process.env.DB_NAME);
+  release();
+});
 
 module.exports = pool;

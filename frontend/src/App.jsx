@@ -1,50 +1,48 @@
-import { useState, useEffect } from 'react';
-import { getMe, login, register, logout } from './adapters/auth-adapters';
-import AuthPage from './components/AuthPage';
-import TodoPage from './components/TodoPage';
+import { useState, useCallback, useRef } from "react";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 
-function App() {
-  const [currentUser, setCurrentUser] = useState(null);
+import AuthPage from "./pages/AuthPage";
+import DashboardPage from "./pages/DashboardPage";
+import NotFoundPage from "./pages/NotFoundPage";
+import LoadingScreen from "./components/LoadingScreen";
+import RouteTransition from "./components/RouteTransition";
 
-  // On every page load, check the server for an active session cookie.
-  // React state doesn't survive a refresh; session cookies do.
-  useEffect(() => {
-    const checkForSession = async () => {
-      const { data: user } = await getMe();
-      setCurrentUser(user);
-    };
-    checkForSession();
+export default function App() {
+  const [showLoader, setShowLoader] = useState(false);
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const suppressNext = useRef(false);
+
+  const handleLoginSuccess = useCallback(() => setShowLoader(true), []);
+
+  const handleLoaderDone = useCallback(() => {
+    setShowLoader(false);
   }, []);
 
-  // Handlers that manage updating the current user. 
-  // Defined in App to ensure that child components only                       
-  // update the current user in a controlled manner.  
-  const handleLogin = async (username, password) => {
-    const { data: user, error } = await login(username, password);
-    if (error) return error;
-    setCurrentUser(user);
-  };
-
-  const handleRegister = async (username, password) => {
-    const { data: user, error } = await register(username, password);
-    if (error) return error;
-    setCurrentUser(user);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    setCurrentUser(null);
-  };
+  const handleLogout = useCallback(() => {
+    suppressNext.current = true;
+    setShowLoader(true);
+    navigate("/auth", { replace: true });
+  }, [navigate]);
 
   return (
-    <main>
-      <h1>Todo App</h1>
-      {currentUser
-        ? <TodoPage currentUser={currentUser} handleLogout={handleLogout} />
-        : <AuthPage handleLogin={handleLogin} handleRegister={handleRegister} />
-      }
-    </main>
+    <>
+      {showLoader && <LoadingScreen onDone={handleLoaderDone} />}
+
+      <RouteTransition location={pathname} isLogoPlaying={showLoader} suppressNext={suppressNext}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/auth" />} />
+          <Route path="/auth" element={<AuthPage onLoginSuccess={handleLoginSuccess} />} />
+          <Route path="/dashboard" element={<DashboardPage onLogout={handleLogout} />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </RouteTransition>
+    </>
   );
 }
-
-export default App;
