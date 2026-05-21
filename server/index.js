@@ -69,7 +69,14 @@ if (process.env.NODE_ENV === "development") {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-    res.cookie("token", token, { httpOnly: true, sameSite: "strict" });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite:
+        process.env.NODE_ENV === "production"
+          ? "none"
+          : "lax",
+    });
     res.json({ message: `Logged in as ${user.email}`, id: user.id });
   });
 }
