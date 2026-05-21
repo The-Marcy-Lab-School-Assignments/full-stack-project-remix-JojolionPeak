@@ -30,9 +30,9 @@ const ACCOUNT_SELECT = `
 const listForUser = async (userId) => {
   const { rows } = await pool.query(
     `SELECT ${ACCOUNT_SELECT}
-     FROM accounts
-     WHERE user_id = $1
-     ORDER BY created_at DESC`,
+     FROM accounts a
+     WHERE a.user_id = $1
+     ORDER BY a.created_at DESC`,
     [userId]
   );
   return rows;
@@ -48,8 +48,8 @@ const listForUser = async (userId) => {
 const findById = async (id) => {
   const { rows } = await pool.query(
     `SELECT ${ACCOUNT_SELECT}, user_id AS "userId"
-     FROM accounts
-     WHERE id = $1`,
+     FROM accounts a
+     WHERE a.id = $1`,
     [id]
   );
   return rows[0] || null;

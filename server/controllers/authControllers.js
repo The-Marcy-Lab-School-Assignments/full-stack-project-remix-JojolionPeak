@@ -13,6 +13,7 @@
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const userModel = require("../models/userModel");
+const bcrypt = require("bcryptjs");
 
 // ─── JWT Cookie Config ────────────────────────────────────────────────────────
 
@@ -69,6 +70,80 @@ const googleCallback = [
   },
 ];
 
+const login = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await userModel.findByEmail(email);
+
+    if (!user || !user.passwordHash) {
+      return res.status(401).json({
+        error: "Invalid credentials.",
+      });
+    }
+
+    const validPassword = await bcrypt.compare(
+      password,
+      user.passwordHash
+    );
+
+    if (!validPassword) {
+      return res.status(401).json({
+        error: "Invalid credentials.",
+      });
+    }
+
+    const token = signToken(user);
+
+    res.cookie(COOKIE_NAME, token, cookieOptions);
+
+    res.json({
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const signup = async (req, res, next) => {
+  try {
+    const { displayName, email, password } = req.body;
+
+    if (!displayName || !email || !password ) {
+      return res.status(400).json({
+        error: "All fields are required.",
+      });
+    }
+
+    const existingUser = await userModel.findByEmail(email);
+
+    if (existingUser) {
+      return res.status(409).json({
+        error: "Email already in use.",
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const user = await userModel.createLocalUser({
+      displayName,
+      email,
+      passwordHash
+    });
+
+    const token = signToken(user);
+
+    res.cookie(COOKIE_NAME, token, cookieOptions);
+
+    res.status(201).json(user);
+  } catch (err) {
+    next(err);
+  }
+};
+
 /**
  * GET /api/auth/me
  * Returns the authenticated user's profile.
@@ -98,4 +173,4 @@ const logout = (req, res) => {
   res.send({ message: "Logged out." });
 };
 
-module.exports = { googleAuth, googleCallback, getMe, logout };
+module.exports = { googleAuth, googleCallback, login, signup, getMe, logout };

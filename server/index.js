@@ -107,6 +107,9 @@ passport.use(
             displayName,
             avatarUrl,
           });
+        } else {
+          // Refresh the avatar URL on every login so stale URLs self-heal
+          user = await userModel.updateUser(user.id, { avatarUrl });
         }
 
         done(null, user);
@@ -125,16 +128,19 @@ app.get("/auth/google/callback", ...authControllers.googleCallback);
 
 // Auth API
 app.get("/api/auth/me", authenticate, authControllers.getMe);
+app.post("/api/auth/signup", authControllers.signup);
+app.post("/api/auth/login", authControllers.login);
 app.post("/api/auth/logout", authControllers.logout);
 
 // Users
 app.delete("/api/users/:id", authenticate, userControllers.deleteUser);
+app.patch("/api/users/:id", authenticate, userControllers.updateUser);
 
 // Accounts (all auth-required)
 app.get("/api/accounts", authenticate, accountControllers.listAccounts);
 app.get("/api/accounts/:id", authenticate, accountControllers.getAccount);
 app.post("/api/accounts", authenticate, accountControllers.createAccount);
-app.put("/api/accounts/:id", authenticate, accountControllers.updateAccount);
+app.patch("/api/accounts/:id", authenticate, accountControllers.updateAccount);
 app.delete("/api/accounts/:id", authenticate, accountControllers.deleteAccount);
 
 // Transactions (all auth-required)

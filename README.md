@@ -1,415 +1,267 @@
-# Personal Finance Tracker
+# Mementos — Personal Finance Tracker
 
-## Overview
-
-A full-stack personal finance application that lets users track their income and expenses over time. Users authenticate via Google OAuth, manually log transactions, and view spending summaries broken down by timeframe — with metrics that compare current spending against prior periods.
-
-**What the app does:**
-
-- Users can register and sign in via Google OAuth
-- Authenticated users can manually log income and expense transactions
-- Users can browse their transaction history filtered by timeframe (day, week, month, year, all-time)
-- Each dashboard view displays recent transactions, the top 5 highest purchases for the selected timeframe, and a percentage-change metric comparing current spending to the previous period
-- Users can create and manage custom spending categories
-- Income and expenses are both tracked, with a net cash flow metric displayed per timeframe
-
-**What you'll build:**
-
-- A PostgreSQL database with tables for users, transactions, and categories
-- A Node.js + Express REST API with MVC architecture, Google OAuth via Passport.js, and JWT-based session management
-- A React + Vite frontend with a timeframe picker, dashboard summary cards, transaction list, and add/edit/delete transaction flow
+> **Take control of your money. No subscriptions, no ads, no noise.**
 
 ---
 
-- [Overview](#overview)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Initial Setup](#initial-setup)
-- [Project Structure](#project-structure)
-- [Phase 1: The Database](#phase-1-the-database)
-  - [Schema](#schema)
-  - [Seed Data](#seed-data)
-  - [Phase 1 Success Checks](#phase-1-success-checks)
-- [Phase 2: Backend — Models](#phase-2-backend--models)
-  - [Phase 2 Success Checks](#phase-2-success-checks)
-- [Phase 3: Backend — Controllers & the Server](#phase-3-backend--controllers--the-server)
-  - [Phase 3 Success Checks](#phase-3-success-checks)
-- [Phase 4: Frontend](#phase-4-frontend)
-  - [Phase 4 Success Checks](#phase-4-success-checks)
+## Mission Statement
+
+Mementos is a personal finance tracker built for people who want clarity without complexity. Most budgeting apps are bloated, expensive, or require handing your bank credentials to a third party you've never heard of. Mementos is different: it's a clean, self-hosted web app that lets you manually track your accounts and transactions, visualize your spending, and understand where your money actually goes — with an optional path to automated bank syncing via Plaid when you're ready.
+
+This is for the person who has wondered "where did my paycheck go?" more than once. It's for the freelancer juggling multiple income streams, the recent grad trying to build their first budget, and anyone who wants a single place to see their full financial picture without a monthly fee.
+
+---
+
+## Table of Contents
+
+- [Mission Statement](#mission-statement)
+- [MVP User Stories](#mvp-user-stories)
+- [Tech Stack](#tech-stack)
+- [Schema Diagram](#schema-diagram)
 - [API Contract](#api-contract)
-  - [Auth](#auth)
-  - [Users](#users)
-  - [Transactions](#transactions)
-  - [Summary & Dashboard](#summary--dashboard)
-  - [Categories](#categories)
-- [Environment Variables](#environment-variables)
-- [Future Improvements](#future-improvements)
+- [Setup Instructions](#setup-instructions)
+- [Roadmap](#roadmap)
 
 ---
 
-## Getting Started
+## MVP User Stories
 
-### Prerequisites
+**Authentication**
+- A user can create an account with a display name, email, and password
+- A user can log in with their email and password
+- A user can sign in with Google via OAuth
+- A user can log out and have their session securely cleared
+- A user can view their own profile (name, avatar)
+- A user can update their display name or password
+- A user can delete their account
 
-- Node.js (v18+)
-- PostgreSQL (running locally)
-- A Google Cloud project with OAuth 2.0 credentials ([setup guide](https://developers.google.com/identity/protocols/oauth2))
+**Accounts**
+- A user can view all of their financial accounts (checking, savings, credit, etc.)
+- A user can add a new account with a name, institution, type, and starting balance
+- A user can edit an existing account's details
+- A user can delete an account (their transactions are preserved, just unlinked)
+- A user can see the current and available balance for each account
 
-### Initial Setup
+**Transactions**
+- A user can view a paginated, filterable list of transactions
+- A user can filter transactions by date range, type (income/expense), status, category, and account
+- A user can add a new transaction manually with a date, amount, description, merchant, category, and account
+- A user can edit an existing transaction
+- A user can delete a transaction
+- A user can mark a transaction as "pending" or "complete"
 
-**1. Clone the repository.**
+**Categories**
+- A user can browse a set of global default categories (Food & Dining, Housing, Salary, etc.)
+- A user can create their own custom categories with a name, icon, color, and type
+- A user can delete their own custom categories
 
-```sh
-git clone <your-repo-url>
-cd personal-finance-tracker
-```
-
-**2. The project has two top-level directories** — `client/` and `server/`. Each has its own `package.json`.
-
-```
-personal-finance-tracker/
-├── client/                     # React + Vite frontend
-│   ├── public/
-│   ├── src/
-│   │   ├── assets/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── hooks/
-│   │   ├── context/
-│   │   ├── utils/
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── index.html
-│   ├── vite.config.js
-│   └── package.json
-│
-└── server/                     # Node.js + Express backend
-    ├── index.js
-    ├── package.json
-    ├── .env
-    ├── db/
-    │   ├── pool.js
-    │   └── seed.js
-    ├── middleware/
-    │   ├── authenticate.js
-    │   └── logRoutes.js
-    ├── models/
-    │   ├── userModel.js
-    │   ├── transactionModel.js
-    │   └── categoryModel.js
-    └── controllers/
-        ├── authControllers.js
-        ├── userControllers.js
-        ├── transactionControllers.js
-        ├── summaryControllers.js
-        └── categoryControllers.js
-```
-
-**3. Install server dependencies:**
-
-```sh
-cd server
-npm install
-```
-
-**4. Install client dependencies:**
-
-```sh
-cd client
-npm install
-```
-
-**5. Create the database:**
-
-```sh
-# Mac
-createdb finance_tracker_db
-
-# Windows
-sudo -u postgres createdb finance_tracker_db
-```
-
-**6. Create your `server/.env` file** and fill in all required values. See [Environment Variables](#environment-variables) for the full list.
-
-**7. Seed the database:**
-
-```sh
-cd server
-node db/seed.js
-```
-
-**8. Start the development servers:**
-
-In one terminal (backend):
-
-```sh
-cd server
-npm run dev
-```
-
-In another terminal (frontend):
-
-```sh
-cd client
-npm run dev
-```
-
-The frontend will be available at `http://localhost:5173` and the API at `http://localhost:3000`.
+**Dashboard & Summary** *(coming soon — see Roadmap)*
+- A user can see their total income and expenses for the current month at a glance
+- A user can compare this month's spending to last month
+- A user can see a breakdown of their spending by category
+- A user can see their top 5 largest expenses for a given period
 
 ---
 
-## Project Structure
+## Tech Stack
 
-### Backend — MVC Pattern
+### Backend
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js |
+| Framework | Express.js |
+| Database | PostgreSQL |
+| ORM / Query | `pg` (raw SQL with parameterized queries) |
+| Authentication | JWT (HttpOnly cookies) + Passport.js (Google OAuth 2.0) |
+| Password Hashing | bcryptjs |
+| Dev Server | nodemon |
 
-The server follows a strict Model-View-Controller pattern:
+### Frontend
+| Layer | Technology |
+|---|---|
+| Framework | React 18 |
+| Routing | React Router v7 |
+| Build Tool | Vite |
+| Styling | Tailwind CSS v4 + custom CSS design tokens |
+| HTTP Client | Axios |
+| Fonts | DM Serif Display, DM Mono (Google Fonts) |
 
-- **Models** (`models/`) — All SQL lives here. Each model file exports async functions that query the database and return results. Controllers never write raw SQL.
-- **Controllers** (`controllers/`) — Each controller function handles one route. It calls model functions, handles errors, and sends the HTTP response.
-- **Middleware** (`middleware/`) — Reusable logic applied across routes. `authenticate.js` protects private routes by verifying the JWT. `logRoutes.js` logs incoming requests.
-
-### Frontend — React + Vite
-
-The client is organized by feature:
-
-- **`pages/`** — Top-level route components (`LoginPage`, `DashboardPage`, `TransactionsPage`, `CategoriesPage`)
-- **`components/`** — Reusable UI components (`TransactionCard`, `SummaryMetric`, `TimeframePicker`, `TransactionForm`, etc.)
-- **`context/`** — Global state (authenticated user, selected timeframe)
-- **`hooks/`** — Custom hooks for data fetching (`useTransactions`, `useSummary`)
-- **`utils/`** — Helper functions for date range calculation, currency formatting, and percent change
-
----
-
-## Phase 1: The Database
-
-Build `db/pool.js` and `db/seed.js`. Nothing else can run until the database is set up and seeded.
-
-### Schema
-
-Your seed file must create these three tables:
-
-**`users`**
-
-| Column         | Type          | Constraints        |
-| -------------- | ------------- | ------------------ |
-| `id`           | `UUID`        | `PRIMARY KEY`      |
-| `google_id`    | `TEXT`        | `UNIQUE, NOT NULL` |
-| `email`        | `TEXT`        | `UNIQUE, NOT NULL` |
-| `display_name` | `TEXT`        |                    |
-| `avatar_url`   | `TEXT`        |                    |
-| `created_at`   | `TIMESTAMPTZ` | `DEFAULT NOW()`    |
-
-**`categories`**
-
-| Column    | Type   | Constraints                                                           |
-| --------- | ------ | --------------------------------------------------------------------- |
-| `id`      | `UUID` | `PRIMARY KEY`                                                         |
-| `user_id` | `UUID` | `REFERENCES users(id) ON DELETE CASCADE` — `NULL` for global defaults |
-| `name`    | `TEXT` | `NOT NULL`                                                            |
-| `icon`    | `TEXT` |                                                                       |
-| `color`   | `TEXT` |                                                                       |
-| `type`    | `TEXT` | `CHECK (type IN ('expense', 'income', 'both'))`                       |
-
-**`transactions`**
-
-| Column                 | Type            | Constraints                                        |
-| ---------------------- | --------------- | -------------------------------------------------- |
-| `id`                   | `UUID`          | `PRIMARY KEY`                                      |
-| `user_id`              | `UUID`          | `REFERENCES users(id) ON DELETE CASCADE, NOT NULL` |
-| `category_id`          | `UUID`          | `REFERENCES categories(id)`                        |
-| `amount`               | `NUMERIC(12,2)` | `NOT NULL`                                         |
-| `type`                 | `TEXT`          | `CHECK (type IN ('expense', 'income'))`            |
-| `description`          | `TEXT`          |                                                    |
-| `merchant`             | `TEXT`          |                                                    |
-| `date`                 | `DATE`          | `NOT NULL`                                         |
-| `source`               | `TEXT`          | `DEFAULT 'manual'`                                 |
-| `plaid_transaction_id` | `TEXT`          | `UNIQUE` — reserved for future Plaid integration   |
-| `plaid_account_id`     | `TEXT`          | — reserved for future Plaid integration            |
-| `created_at`           | `TIMESTAMPTZ`   | `DEFAULT NOW()`                                    |
-
-> **Note on `source` and `plaid_*` columns:** These are intentionally seeded as `NULL` for all manual entries. When Plaid is integrated in a future phase, it will write into these same columns. This design means Plaid becomes a second insertion path with no changes required to existing queries.
-
-### Seed Data
-
-Seed at least 2 test users with a variety of transactions spread across multiple categories, types (`expense` and `income`), and dates (spread across at least 2 calendar months so timeframe comparisons return meaningful data). Also seed the global default categories so every new user has a starting set.
-
-### Phase 1 Success Checks
-
-Run the seed file:
-
-```sh
-node db/seed.js
-```
-
-Then verify in `psql`:
-
-```sql
-\dt                                              -- all three tables should appear
-SELECT id, email, display_name FROM users;
-SELECT id, name, type FROM categories;
-SELECT id, amount, type, date FROM transactions LIMIT 10;
-```
-
-Don't move on until all three tables exist and contain seeded data.
+### Infrastructure
+| Concern | Approach |
+|---|---|
+| Auth flow | Stateless JWT stored in HttpOnly `SameSite=Strict` cookies |
+| API Proxy (dev) | Vite proxy forwards `/api` requests to Express on port 3000 |
+| Seed data | `seed.js` script — drops/recreates all tables and inserts sample data |
+| Environment | `.env` files (never committed); `dotenv` for loading |
 
 ---
 
-## Phase 2: Backend — Models
+## Schema Diagram
 
-Build `userModel.js`, `transactionModel.js`, and `categoryModel.js`. Each model exports async functions that run SQL queries — controllers call these functions but never write SQL themselves.
+```
+┌──────────────────────────────────────────────────┐
+│                      users                       │
+├──────────────┬───────────────────────────────────┤
+│ id           │ UUID (PK, gen_random_uuid())       │
+│ google_id    │ TEXT (UNIQUE, nullable)            │
+│ email        │ TEXT (UNIQUE, NOT NULL)            │
+│ password_hash│ TEXT (nullable — OAuth users only) │
+│ display_name │ TEXT (NOT NULL)                    │
+│ avatar_url   │ TEXT (nullable)                    │
+│ created_at   │ TIMESTAMP                          │
+└──────────────┴───────────────────────────────────┘
+        │
+        │ 1 ──────────────────────── ∞
+        ▼
+┌──────────────────────────────────────────────────┐
+│                    categories                    │
+├──────────────┬───────────────────────────────────┤
+│ id           │ UUID (PK)                          │
+│ user_id      │ UUID (FK → users, nullable)        │
+│              │  NULL = global default category    │
+│ name         │ TEXT (NOT NULL)                    │
+│ icon         │ TEXT (emoji)                       │
+│ color        │ TEXT (hex)                         │
+│ type         │ TEXT CHECK ('expense','income',    │
+│              │             'both') NOT NULL       │
+└──────────────┴───────────────────────────────────┘
 
-Read the [API Contract](#api-contract) to understand what shape each response needs. Work backwards: look at a response shape, then write the SQL that produces it.
-
-Key queries to think through:
-
-- `transactionModel.listByTimeframe(userId, from, to)` — filters by `date` range and `user_id`, returns transactions with their category name and color via a JOIN
-- `transactionModel.topPurchases(userId, from, to)` — same filter, ordered by `amount DESC`, limited to 5
-- `summaryModel.getSummary(userId, timeframe)` — needs to compute `SUM(amount)` for both the current and previous period; the timeframe boundaries should be calculated in a utility function before being passed to the query
-- `categoryModel.listForUser(userId)` — returns global categories (`user_id IS NULL`) plus the user's custom categories
-
-### Phase 2 Success Checks
-
-Create a temporary `server/test.js` to verify your models directly:
-
-```js
-// server/test.js — delete after testing
-require("dotenv").config();
-const transactionModel = require("./models/transactionModel");
-
-const test = async () => {
-  const userId = "<a seeded user UUID>";
-  const from = "2026-05-01";
-  const to = "2026-05-31";
-
-  console.log(
-    "Transactions:",
-    await transactionModel.listByTimeframe(userId, from, to)
-  );
-  console.log(
-    "Top purchases:",
-    await transactionModel.topPurchases(userId, from, to)
-  );
-
-  process.exit();
-};
-test();
+        │ (user) 1 ──────────────────────── ∞
+        ▼
+┌──────────────────────────────────────────────────┐
+│                     accounts                     │
+├──────────────┬───────────────────────────────────┤
+│ id           │ UUID (PK)                          │
+│ user_id      │ UUID (FK → users, NOT NULL)        │
+│ plaid_account_id │ TEXT (UNIQUE, nullable)        │
+│ plaid_item_id│ TEXT (nullable)                    │
+│ institution_name │ TEXT                           │
+│ account_name │ TEXT (NOT NULL)                    │
+│ mask         │ TEXT (last 4 digits)               │
+│ type         │ TEXT CHECK ('depository','credit', │
+│              │   'loan','investment','other')      │
+│ subtype      │ TEXT (checking, savings, etc.)     │
+│ current_balance   │ NUMERIC(12,2)                 │
+│ available_balance │ NUMERIC(12,2)                 │
+│ created_at   │ TIMESTAMPTZ                        │
+└──────────────┴───────────────────────────────────┘
+        │
+        │ 1 ──────────────────────── ∞
+        ▼
+┌──────────────────────────────────────────────────┐
+│                   transactions                   │
+├──────────────┬───────────────────────────────────┤
+│ id           │ UUID (PK)                          │
+│ user_id      │ UUID (FK → users, NOT NULL)        │
+│ account_id   │ UUID (FK → accounts, SET NULL)     │
+│ category_id  │ UUID (FK → categories, SET NULL)   │
+│ amount       │ NUMERIC(12,2) NOT NULL             │
+│              │  positive = income, negative = exp │
+│ type         │ TEXT CHECK ('expense','income')     │
+│ status       │ TEXT CHECK ('pending','complete')   │
+│ description  │ TEXT                               │
+│ merchant     │ TEXT                               │
+│ date         │ DATE (NOT NULL)                    │
+│ authorized_date │ DATE                            │
+│ source       │ TEXT CHECK ('manual','plaid')       │
+│ plaid_transaction_id │ TEXT (UNIQUE, nullable)    │
+│ plaid_category │ TEXT                             │
+│ provider_metadata │ JSONB                         │
+│ created_at   │ TIMESTAMPTZ                        │
+│ updated_at   │ TIMESTAMPTZ                        │
+└──────────────┴───────────────────────────────────┘
 ```
 
----
-
-## Phase 3: Backend — Controllers & the Server
-
-Build the middleware, controllers, and `index.js`.
-
-### Authentication
-
-This app uses **Google OAuth 2.0** via Passport.js (`passport-google-oauth20`). The flow is:
-
-1. User visits `GET /auth/google` → redirected to Google's consent screen
-2. Google redirects back to `GET /auth/google/callback` with a code
-3. Passport exchanges the code for a profile, finds or creates the user in the database, then issues a **signed JWT**
-4. The JWT is sent to the client as an `HttpOnly` cookie
-5. All protected routes verify the JWT via the `authenticate` middleware
-
-Store the user's `id` (UUID) in the JWT payload. The `authenticate` middleware should attach the decoded user to `req.user`.
-
-### JWT vs. Sessions
-
-This project uses JWTs instead of server-side sessions. Key differences to keep in mind:
-
-- No session store is needed — the JWT is self-contained and stateless
-- Use the `jsonwebtoken` package (`jwt.sign` on login, `jwt.verify` in middleware)
-- Set the JWT as an `HttpOnly`, `Secure` (in production), `SameSite=Strict` cookie so it is never accessible from JavaScript
-- JWTs cannot be invalidated server-side — logout is handled by clearing the cookie on the client
-
-### Phase 3 Success Checks
-
-Start the server:
-
-```sh
-node index.js
-```
-
-Test the public endpoints:
-
-```sh
-# Confirm transactions endpoint requires auth
-curl -s http://localhost:3000/api/transactions | jq
-
-# Confirm categories are public
-curl -s http://localhost:3000/api/categories | jq
-```
-
-For auth-protected endpoints, complete the Google OAuth flow in the browser, then copy the JWT cookie value into your curl commands using `-H "Cookie: token=<jwt>"`.
-
----
-
-## Phase 4: Frontend
-
-Build the React frontend in `client/src/`. The frontend communicates exclusively with the Express API — no direct database access.
-
-### Pages
-
-- **`/login`** — Google Sign-In button; redirects to `/dashboard` on success
-- **`/dashboard`** — Main view: timeframe picker, summary metrics, top 5 purchases, recent transactions
-- **`/transactions`** — Full paginated transaction list; add / edit / delete transaction modal
-- **`/categories`** — Manage custom categories (create, delete)
-
-### Timeframe Picker
-
-The timeframe picker lives in a persistent header or sidebar. Selecting a new timeframe (day / week / month / year / all-time) updates a global context value. All dashboard components re-fetch when the timeframe changes.
-
-Date boundaries are calculated in `utils/dateRanges.js` on the client and sent as `?from=` and `?to=` query parameters to the API.
-
-### Phase 4 Success Checks
-
-With both servers running:
-
-- [ ] Visiting `/` redirects unauthenticated users to `/login`
-- [ ] Clicking "Sign in with Google" completes OAuth and lands on `/dashboard`
-- [ ] The dashboard loads and displays the current month's data by default
-- [ ] Switching timeframes re-fetches and updates all dashboard metrics
-- [ ] Adding a transaction via the form appears immediately in the transaction list
-- [ ] Editing and deleting a transaction works and reflects in the UI without a full reload
-- [ ] The % change metric correctly shows N/A for the all-time timeframe
+**Indexes**
+- `idx_transactions_user_date` on `(user_id, date DESC)` — primary query pattern
+- `idx_accounts_user` on `(user_id)` — account list lookups
+- `idx_transactions_account` on `(account_id)` — account-scoped transaction views
 
 ---
 
 ## API Contract
 
-All API routes are prefixed with `/api`. Routes marked **Auth required** expect a valid JWT cookie; they return `401` if none is present.
+All API routes return JSON. Auth-protected routes (marked 🔒) require a valid `token` cookie, set automatically at login/signup. Error responses follow `{ "error": "human-readable message" }`.
 
 ---
 
 ### Auth
 
-**`GET /auth/google`**
-Redirects the user to Google's OAuth consent screen. No request body.
+#### `POST /api/auth/signup`
+Create a new local account.
 
-**`GET /auth/google/callback`**
-OAuth redirect URI. On success, sets the JWT cookie and redirects to `/dashboard`. On failure, redirects to `/login`.
-
-**`GET /api/auth/me`**
-Returns the currently authenticated user. **Auth required.**
-
-**Success `200`:**
-
+**Request body**
 ```json
 {
-  "id": "uuid",
-  "email": "user@gmail.com",
-  "displayName": "Jane Doe",
-  "avatarUrl": "https://..."
+  "displayName": "Alice Johnson",
+  "email": "alice@example.com",
+  "password": "supersecret"
 }
 ```
 
-**Error `401`** — no valid JWT
+**Response `201`**
+```json
+{
+  "id": "uuid",
+  "email": "alice@example.com",
+  "displayName": "Alice Johnson",
+  "avatarUrl": null
+}
+```
+Sets `token` cookie. Errors: `400` missing fields, `409` email already in use.
 
-**`POST /api/auth/logout`**
-Clears the JWT cookie.
+---
 
-**Success `200`:**
+#### `POST /api/auth/login`
+Log in with email and password.
 
+**Request body**
+```json
+{ "email": "alice@example.com", "password": "supersecret" }
+```
+
+**Response `200`**
+```json
+{
+  "id": "uuid",
+  "email": "alice@example.com",
+  "displayName": "Alice Johnson",
+  "avatarUrl": null
+}
+```
+Sets `token` cookie. Errors: `401` invalid credentials.
+
+---
+
+#### `GET /auth/google`
+Redirects the browser to Google's OAuth consent screen. No request body needed.
+
+#### `GET /auth/google/callback`
+Google redirects here after the user grants consent. Sets `token` cookie and redirects the browser to `/dashboard`.
+
+---
+
+#### `GET /api/auth/me`
+🔒 Returns the currently authenticated user's profile.
+
+**Response `200`**
+```json
+{
+  "id": "uuid",
+  "email": "alice@example.com",
+  "displayName": "Alice Johnson",
+  "avatarUrl": "https://...",
+  "createdAt": "2026-01-01T00:00:00.000Z"
+}
+```
+Errors: `401` not authenticated.
+
+---
+
+#### `POST /api/auth/logout`
+🔒 Clears the `token` cookie.
+
+**Response `200`**
 ```json
 { "message": "Logged out." }
 ```
@@ -418,189 +270,306 @@ Clears the JWT cookie.
 
 ### Users
 
-**`DELETE /api/users/:id`**
-Delete the authenticated user's account. **Auth required.** Users may only delete their own account.
+#### `PATCH /api/users/:id`
+🔒 Update the authenticated user's profile. All fields are optional.
 
-**Success `200`:**
-
+**Request body** (any subset)
 ```json
-{ "id": "uuid", "email": "user@gmail.com" }
+{
+  "displayName": "Alice K. Johnson",
+  "newPassword": "evenmoresecret"
+}
 ```
 
-**Error `401`** — not logged in
-**Error `403`** — attempting to delete a different user's account
+**Response `200`** — updated user object.
+Errors: `403` if `:id` doesn't match the authenticated user.
+
+---
+
+#### `DELETE /api/users/:id`
+🔒 Permanently delete the user account. Cascades to all their accounts, transactions, and custom categories.
+
+**Response `200`** — deleted user snapshot.
+
+---
+
+### Accounts
+
+All account routes are 🔒 auth-protected.
+
+#### `GET /api/accounts`
+List all accounts for the current user, newest first.
+
+**Response `200`**
+```json
+[
+  {
+    "id": "uuid",
+    "accountName": "Total Checking",
+    "institutionName": "Chase",
+    "mask": "4821",
+    "type": "depository",
+    "subtype": "checking",
+    "currentBalance": 3240.55,
+    "availableBalance": 3240.55,
+    "createdAt": "2026-05-01T00:00:00.000Z"
+  }
+]
+```
+
+---
+
+#### `GET /api/accounts/:id`
+Get a single account by ID.
+
+**Response `200`** — single account object (same shape as above).
+Errors: `404` not found, `403` not owned by the current user.
+
+---
+
+#### `POST /api/accounts`
+Create a new manual account.
+
+**Request body**
+```json
+{
+  "accountName": "Savings",
+  "institutionName": "Chase",
+  "type": "depository",
+  "subtype": "savings",
+  "mask": "7703",
+  "currentBalance": 5000.00,
+  "availableBalance": 5000.00
+}
+```
+`accountName` and `type` are required.
+
+**Response `201`** — newly created account object.
+
+---
+
+#### `PATCH /api/accounts/:id`
+Partial update of an account. Only provided fields are changed.
+
+**Request body** — any subset of the create fields.
+
+**Response `200`** — updated account object.
+Errors: `403` not owned, `404` not found.
+
+---
+
+#### `DELETE /api/accounts/:id`
+Delete an account. Associated transactions have their `account_id` set to `NULL` — they are preserved.
+
+**Response `200`**
+```json
+{ "id": "uuid", "accountName": "Savings", "type": "depository" }
+```
 
 ---
 
 ### Transactions
 
-**`GET /api/transactions`**
-Returns the authenticated user's transactions within a date range, paginated. **Auth required.**
+All transaction routes are 🔒 auth-protected.
 
-**Query params:**
+#### `GET /api/transactions`
+List transactions with filtering and pagination.
 
-```
-?from=2026-05-01
-?to=2026-05-31
-?page=1
-?limit=20
-?type=expense          # optional: expense | income
-?category_id=uuid      # optional
-```
+**Query parameters**
 
-**Success `200`:**
+| Param | Type | Required | Description |
+|---|---|---|---|
+| `from` | `YYYY-MM-DD` | ✅ | Start date (inclusive) |
+| `to` | `YYYY-MM-DD` | ✅ | End date (inclusive) |
+| `type` | `expense` \| `income` | — | Filter by type |
+| `status` | `pending` \| `complete` | — | Filter by status |
+| `categoryId` | UUID | — | Filter by category |
+| `accountId` | UUID | — | Filter by account |
+| `page` | integer | — | Page number (default: 1) |
+| `limit` | integer | — | Results per page (default: 20) |
 
+**Response `200`**
 ```json
 {
   "data": [
     {
       "id": "uuid",
-      "amount": 42.5,
+      "accountId": "uuid",
+      "amount": -62.40,
       "type": "expense",
-      "description": "Lunch",
-      "merchant": "Chipotle",
-      "category": { "id": "uuid", "name": "Food", "color": "#FF6B6B" },
-      "date": "2026-05-10"
+      "status": "complete",
+      "description": "Weekly groceries",
+      "merchant": "Whole Foods",
+      "date": "2026-05-03",
+      "authorizedDate": null,
+      "source": "manual",
+      "createdAt": "...",
+      "updatedAt": "...",
+      "category": {
+        "id": "uuid",
+        "name": "Food & Dining",
+        "icon": "🍔",
+        "color": "#FF6B6B"
+      },
+      "account": {
+        "id": "uuid",
+        "accountName": "Gold Card",
+        "institutionName": "American Express",
+        "mask": "1009",
+        "type": "credit",
+        "subtype": "credit card"
+      }
     }
   ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 84,
-    "hasMore": true
+  "total": 47,
+  "page": 1,
+  "limit": 20
+}
+```
+
+---
+
+#### `POST /api/transactions`
+Create a new transaction manually.
+
+**Request body**
+```json
+{
+  "amount": -74.20,
+  "type": "expense",
+  "status": "complete",
+  "description": "Weekly groceries",
+  "merchant": "Whole Foods",
+  "categoryId": "uuid",
+  "accountId": "uuid",
+  "date": "2026-05-03",
+  "authorizedDate": null
+}
+```
+`amount`, `type`, and `date` are required. Use a negative `amount` for expenses, positive for income.
+
+**Response `201`** — full transaction object with category and account embedded.
+
+---
+
+#### `PUT /api/transactions/:id`
+Update a transaction. All fields are optional (partial update supported).
+
+**Request body** — any subset of the create fields.
+
+**Response `200`** — updated transaction object.
+Errors: `403` not owned, `404` not found.
+
+---
+
+#### `DELETE /api/transactions/:id`
+Delete a transaction permanently.
+
+**Response `200`**
+```json
+{
+  "id": "uuid",
+  "amount": -74.20,
+  "type": "expense",
+  "status": "complete",
+  "description": "Weekly groceries",
+  "merchant": "Whole Foods",
+  "date": "2026-05-03"
+}
+```
+
+---
+
+### Summary / Dashboard
+
+All summary routes are 🔒 auth-protected.
+
+#### `GET /api/summary`
+Aggregate totals for a given period, including a comparison to the preceding period of equal length and the top 5 expenses.
+
+**Query parameters**
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| `from` | `YYYY-MM-DD` | ✅ | Period start |
+| `to` | `YYYY-MM-DD` | ✅ | Period end |
+
+**Response `200`**
+```json
+{
+  "current": {
+    "totalIncome": 4500.00,
+    "totalExpenses": -2521.69,
+    "transactionCount": 11,
+    "netSavings": 1978.31,
+    "topExpenses": [ "...transaction objects..." ]
+  },
+  "previous": {
+    "totalIncome": 5100.00,
+    "totalExpenses": -2430.34,
+    "transactionCount": 13,
+    "netSavings": 2669.66
   }
 }
 ```
 
-**`POST /api/transactions`**
-Create a new transaction. **Auth required.**
+---
 
-**Request body:**
+#### `GET /api/summary/range`
+Same shape as `/api/summary` — use for any arbitrary custom date range.
 
-```json
-{
-  "amount": 42.5,
-  "type": "expense",
-  "description": "Lunch",
-  "merchant": "Chipotle",
-  "category_id": "uuid",
-  "date": "2026-05-10"
-}
-```
-
-**Success `201`:** The newly created transaction object.
-**Error `400`** — missing required fields
-**Error `401`** — not logged in
-
-**`PUT /api/transactions/:id`**
-Update a transaction. **Auth required.** Owner only.
-
-**Request body:** Any subset of the transaction fields.
-
-**Success `200`:** The updated transaction object.
-**Error `401`** — not logged in
-**Error `403`** — not the owner
-**Error `404`** — transaction not found
-
-**`DELETE /api/transactions/:id`**
-Delete a transaction. **Auth required.** Owner only.
-
-**Success `200`:** The deleted transaction object.
-**Error `401`** — not logged in
-**Error `403`** — not the owner
-**Error `404`** — transaction not found
+**Query parameters** — same as `/api/summary`.
 
 ---
 
-### Summary & Dashboard
+#### `GET /api/summary/by-category`
+Spending breakdown grouped by category, with each category's share of the total.
 
-**`GET /api/summary`**
-Returns aggregated spending and income metrics for the current and previous period. **Auth required.**
+**Query parameters**
 
-**Query params:**
+| Param | Type | Required | Description |
+|---|---|---|---|
+| `from` | `YYYY-MM-DD` | ✅ | Start date |
+| `to` | `YYYY-MM-DD` | ✅ | End date |
+| `type` | `expense` \| `income` | — | Filter by transaction type |
 
-```
-?timeframe=month       # day | week | month | year | all
-```
-
-**Success `200`:**
-
+**Response `200`**
 ```json
-{
-  "timeframe": "month",
-  "current": {
-    "from": "2026-05-01",
-    "to": "2026-05-12",
-    "totalExpenses": 1240.0,
-    "totalIncome": 3500.0,
-    "netFlow": 2260.0,
-    "transactionCount": 23
+[
+  {
+    "name": "Housing",
+    "icon": "🏠",
+    "color": "#45B7D1",
+    "type": "expense",
+    "total": 1800.00,
+    "percentage": 71.39
   },
-  "previous": {
-    "from": "2026-04-01",
-    "to": "2026-04-30",
-    "totalExpenses": 980.0,
-    "totalIncome": 3500.0,
-    "netFlow": 2520.0
-  },
-  "expensePercentChange": 26.53,
-  "incomePercentChange": 0.0,
-  "netFlowPercentChange": -10.32,
-  "topPurchases": [
-    {
-      "id": "uuid",
-      "amount": 320.0,
-      "description": "Electric bill",
-      "merchant": "ConEd",
-      "category": { "name": "Utilities", "color": "#4ECDC4" },
-      "date": "2026-05-03"
-    }
-  ]
-}
-```
-
-> **All-time timeframe:** `expensePercentChange`, `incomePercentChange`, and `netFlowPercentChange` will be `null`. The frontend displays "N/A" for these fields.
-
-**`GET /api/summary/by-category`**
-Returns spending broken down by category for the selected timeframe. **Auth required.**
-
-**Query params:**
-
-```
-?timeframe=month
-?type=expense          # optional: expense | income
-```
-
-**Success `200`:**
-
-```json
-{
-  "categories": [
-    { "name": "Food", "color": "#FF6B6B", "total": 420.0, "percentage": 33.8 },
-    {
-      "name": "Transport",
-      "color": "#4ECDC4",
-      "total": 180.0,
-      "percentage": 14.5
-    }
-  ]
-}
+  {
+    "name": "Food & Dining",
+    "icon": "🍔",
+    "color": "#FF6B6B",
+    "type": "expense",
+    "total": 266.65,
+    "percentage": 10.57
+  }
+]
 ```
 
 ---
 
 ### Categories
 
-**`GET /api/categories`**
-Returns all global default categories plus the authenticated user's custom categories. **Auth required.**
+All category routes are 🔒 auth-protected.
 
-**Success `200`:**
+#### `GET /api/categories`
+List all categories available to the user: global defaults (visible to everyone) plus their own custom categories. Sorted by type, then name.
 
+**Response `200`**
 ```json
 [
   {
     "id": "uuid",
-    "name": "Food",
+    "name": "Food & Dining",
     "icon": "🍔",
     "color": "#FF6B6B",
     "type": "expense",
@@ -608,7 +577,7 @@ Returns all global default categories plus the authenticated user's custom categ
   },
   {
     "id": "uuid",
-    "name": "Freelance",
+    "name": "My Freelance Work",
     "icon": "💻",
     "color": "#A78BFA",
     "type": "income",
@@ -617,66 +586,209 @@ Returns all global default categories plus the authenticated user's custom categ
 ]
 ```
 
-**`POST /api/categories`**
-Create a custom category for the authenticated user. **Auth required.**
+---
 
-**Request body:**
+#### `POST /api/categories`
+Create a custom category for the current user.
 
+**Request body**
 ```json
-{ "name": "Freelance", "icon": "💻", "color": "#A78BFA", "type": "income" }
+{
+  "name": "Pet Care",
+  "icon": "🐾",
+  "color": "#F59E0B",
+  "type": "expense"
+}
 ```
+`name` and `type` are required. `icon` and `color` are optional.
 
-**Success `201`:** The newly created category object.
-**Error `400`** — missing required fields
-**Error `401`** — not logged in
-
-**`DELETE /api/categories/:id`**
-Delete a user-created category. **Auth required.** Users may only delete their own categories; global defaults cannot be deleted.
-
-**Success `200`:** The deleted category object.
-**Error `401`** — not logged in
-**Error `403`** — attempting to delete another user's category or a global default
-**Error `404`** — category not found
+**Response `201`** — newly created category with `"isCustom": true`.
 
 ---
 
-## Environment Variables
+#### `DELETE /api/categories/:id`
+Delete a custom category. Only the owning user can delete their categories. Global defaults cannot be deleted by anyone.
 
-Create a `server/.env` file with the following:
+**Response `200`**
+```json
+{ "id": "uuid", "name": "Pet Care", "type": "expense" }
+```
+Errors: `403` not owned or is a global category, `404` not found.
+
+---
+
+## Setup Instructions
+
+### Prerequisites
+- Node.js v20+
+- PostgreSQL 14+
+- A Google Cloud project with OAuth 2.0 credentials *(optional — only needed for Google sign-in)*
+
+---
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/your-username/mementos.git
+cd mementos
+```
+
+---
+
+### 2. Install backend dependencies
+
+```bash
+cd server
+npm install
+```
+
+Create a `.env` file inside `server/`:
 
 ```env
+PORT=3000
+NODE_ENV=development
+
 # PostgreSQL
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=finance_tracker_db
-DB_USER=your_postgres_username
-DB_PASSWORD=your_postgres_password
+DB_NAME=mementos_dev
+DB_USER=postgres
+DB_PASSWORD=your_password
 
-# Google OAuth
+# JWT
+JWT_SECRET=a_very_long_random_secret_string
+JWT_EXPIRES_IN=7d
+
+# Google OAuth (optional)
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
 
-# JWT
-JWT_SECRET=a_long_random_secret_string
-JWT_EXPIRES_IN=7d
-
-# Server
-PORT=3000
+# Frontend URL (for CORS and OAuth redirect)
 CLIENT_URL=http://localhost:5173
-NODE_ENV=development
 ```
-
-> **Never commit `.env` to version control.** The `.gitignore` is already configured to exclude it.
 
 ---
 
-## Future Improvements
+### 3. Create the database
 
-The following features are intentionally out of scope for the initial build but are designed into the data model so they can be added without breaking changes:
+```bash
+psql -U postgres -c "CREATE DATABASE mementos_dev;"
+```
 
-- **Plaid integration** — The `source`, `plaid_transaction_id`, and `plaid_account_id` columns on `transactions` are already in place. Plaid would become a second insertion path that writes into the same table, with no changes needed to existing queries or the frontend.
-- **Budget goals** — A `budgets` table (per user, per category, per month) could be added and surfaced as a progress bar on the dashboard.
-- **Recurring transactions** — A `is_recurring` flag and `recurrence_rule` column on `transactions` would support auto-logging of fixed monthly expenses.
-- **CSV import** — A `POST /api/transactions/import` endpoint could accept a CSV file and bulk-insert rows with `source = 'csv'`.
-- **Data export** — `GET /api/transactions/export?format=csv` for user data portability.
+---
+
+### 4. Seed the database
+
+The seed script drops and recreates all tables, inserts 17 global categories, and creates 3 sample users with accounts and realistic transactions spread across the current and previous month.
+
+```bash
+node db/seed.js
+```
+
+**Sample users created:**
+
+| Name | Email | Password |
+|---|---|---|
+| Alice Johnson | alice@example.com | password123 |
+| Bob Martinez | bob@example.com | password123 |
+| Carol Kim | carol@example.com | password123 |
+
+---
+
+### 5. Start the backend
+
+```bash
+npm run dev
+# Running at http://localhost:3000
+```
+
+---
+
+### 6. Install and start the frontend
+
+```bash
+cd ../client
+npm install
+npm run dev
+# Running at http://localhost:5173
+```
+
+The Vite dev server proxies all `/api` requests to Express on port 3000, so cookies work correctly without any CORS configuration needed on your end.
+
+---
+
+### 7. Open the app
+
+Visit [http://localhost:5173](http://localhost:5173) and log in with one of the seed accounts above, or sign up fresh.
+
+---
+
+## Roadmap
+
+Planned features in rough priority order.
+
+---
+
+### Plaid Integration — Automatic Bank Syncing
+
+The single biggest quality-of-life improvement. Users will connect their real bank accounts through [Plaid Link](https://plaid.com/docs/link/) and have transactions sync automatically — ending the need for manual entry.
+
+The database schema already has the necessary columns reserved: `plaid_account_id`, `plaid_item_id`, `plaid_transaction_id`, `plaid_category`, and `provider_metadata` (JSONB for arbitrary Plaid payloads). Planned work:
+
+- Plaid Link UI flow and public-token exchange endpoint
+- `TRANSACTIONS_SYNC` webhook listener for real-time updates
+- Smart duplicate detection when Plaid transactions overlap with manual entries
+- Periodic balance refresh for connected accounts
+- Visual badge distinguishing Plaid-synced vs. manual transactions
+
+---
+
+### Summary / Dashboard Page
+
+A dedicated view giving users their most important financial signals at a glance, without hunting through transaction lists:
+
+- **Monthly snapshot card** — total income, total expenses, net savings, and a delta vs. the previous month
+- **Spending by category chart** — donut or bar chart powered by `/api/summary/by-category`
+- **Top 5 expenses** — the biggest purchases in the selected period so nothing sneaks by
+- **Daily spend trend** — a line chart showing how spending accumulated across the month
+- **Custom date range picker** — analyze any period, not just the current month
+
+---
+
+### Categories Management Page
+
+A dedicated UI for managing categories rather than doing it inline:
+
+- Browse all global defaults with their icons and colors
+- Create, rename, recolor, and delete custom categories
+- See a mini spending summary per category for the current month
+- Custom sort order via drag-and-drop
+
+---
+
+### CSV Import
+
+Upload a bank statement export and have Mementos parse it into transactions. A review/mapping step lets users confirm before committing — the fastest way to backfill months of history without needing Plaid.
+
+---
+
+### Budgets
+
+Set a monthly spending target per category. The dashboard would show progress bars and notify users when they're approaching or over their limit, turning Mementos from a tracking tool into a planning one.
+
+---
+
+### Multi-currency Support
+
+Store a `currency` field on accounts and transactions. Users with accounts in multiple currencies (common for travelers and remote workers) would see transactions in their original currency alongside an optional converted total.
+
+---
+
+### Mobile App
+
+The frontend design system (DM Mono, CSS variables, design tokens) was built with portability in mind. A React Native app sharing the same backend API would let users log transactions on the go — the most natural moment to capture spending is right when it happens.
+
+---
+
+*Built with ☕ and a few too many open tabs.*

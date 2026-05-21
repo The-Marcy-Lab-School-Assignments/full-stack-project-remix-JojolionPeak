@@ -1,4 +1,5 @@
 require("dotenv").config();
+const bcrypt = require("bcryptjs");
 const pool = require("./pool");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -20,12 +21,17 @@ const createTables = `
 
   -- Users created via Google OAuth
   CREATE TABLE users (
-    id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    google_id    TEXT         UNIQUE NOT NULL,
-    email        TEXT         UNIQUE NOT NULL,
-    display_name TEXT,
-    avatar_url   TEXT,
-    created_at   TIMESTAMPTZ  DEFAULT NOW()
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  
+    google_id TEXT UNIQUE,
+    email TEXT UNIQUE NOT NULL,
+  
+    password_hash TEXT,
+  
+    display_name TEXT NOT NULL,
+    avatar_url TEXT,
+  
+    created_at TIMESTAMP DEFAULT NOW()
   );
 
   -- Categories: user_id IS NULL means it's a global default available to everyone
@@ -136,20 +142,20 @@ const globalCategories = [
 
 const seedUsers = [
   {
-    google_id: "google_seed_001",
     email: "alice@example.com",
+    password: "password123",
     display_name: "Alice Johnson",
     avatar_url: "https://i.pravatar.cc/150?u=alice",
   },
   {
-    google_id: "google_seed_002",
     email: "bob@example.com",
+    password: "password123",
     display_name: "Bob Martinez",
     avatar_url: "https://i.pravatar.cc/150?u=bob",
   },
   {
-    google_id: "google_seed_003",
     email: "carol@example.com",
+    password: "password123",
     display_name: "Carol Kim",
     avatar_url: "https://i.pravatar.cc/150?u=carol",
   },
@@ -186,11 +192,18 @@ const seed = async () => {
     const userIds = {};
 
     for (const user of seedUsers) {
+
+      let passwordHash = null;
+      if (user.password) {
+        passwordHash = await bcrypt.hash(user.password, 12);
+      }
+
+      
       const result = await client.query(
-        `INSERT INTO users (google_id, email, display_name, avatar_url)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO users (google_id, email, password_hash, display_name, avatar_url)
+         VALUES ($1, $2, $3, $4, $5)
          RETURNING id, email`,
-        [user.google_id, user.email, user.display_name, user.avatar_url]
+        [ user.google_id ?? null, user.email, passwordHash, user.display_name, user.avatar_url]
       );
       userIds[user.email] = result.rows[0].id;
     }

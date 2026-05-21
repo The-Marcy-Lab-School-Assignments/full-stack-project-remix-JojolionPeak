@@ -12,6 +12,7 @@ const pool = require("../db/pool");
 // Reused across list / findById so column aliasing stays consistent.
 const TX_SELECT = `
   t.id,
+  t.account_id       AS "accountId",
   t.amount,
   t.type,
   t.status,

@@ -1,0 +1,428 @@
+/* ── Header ── */
+.dashboard-header {
+  padding: 2.5rem 0 2rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header-greeting {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.header-greeting em {
+  font-style: italic;
+  color: var(--color-accent);
+}
+
+.header-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border-hover);
+  object-fit: cover;
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+.header-avatar-placeholder {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border-hover);
+  background: var(--color-accent-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: var(--color-accent);
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+/* ── Main ── */
+.dashboard-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-2xl) 0;
+  max-width: 780px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Account Cards ── */
+.accounts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.account-card {
+  opacity: 0;
+  animation: slideUp 0.45s ease forwards;
+  cursor: pointer;
+}
+
+.card-inner {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  transition: background var(--transition), border-color var(--transition), transform var(--transition);
+}
+
+.card-inner:hover {
+  transform: translateX(3px);
+}
+
+.card-strip {
+  width: 3px;
+  align-self: stretch;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.card-body {
+  flex: 1;
+  padding: var(--space-md) 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.card-institution {
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  margin-bottom: 0.2rem;
+}
+
+.card-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-text);
+  letter-spacing: 0.01em;
+}
+
+.card-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.card-subtype {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  background: rgba(255,255,255,0.06);
+  padding: 0.2rem var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+.card-mask {
+  font-size: 0.7rem;
+  color: var(--color-text-faint);
+  letter-spacing: 0.08em;
+}
+
+.card-balance {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.card-chevron {
+  font-size: 1.3rem;
+  color: var(--color-text-faint);
+  padding: 0 var(--space-md) 0 var(--space-sm);
+  transition: color var(--transition), transform var(--transition);
+}
+
+.card-inner:hover .card-chevron {
+  color: var(--color-text-muted);
+  transform: translateX(2px);
+}
+
+/* ── Money Symbol ── */
+.money-symbol {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.9em;
+  margin-right: 1px;
+}
+
+/* ── Add Account Button ── */
+.btn-add-account {
+  margin-top: var(--space-lg);
+  width: 100%;
+  padding: 0.85rem;
+  background: transparent;
+  border: 1px dashed var(--color-border-hover);
+  border-radius: var(--radius-lg);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+  opacity: 0;
+  animation: fadeDown 0.5s 0.3s ease forwards;
+}
+
+.btn-add-account:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-dim);
+}
+
+/* ── Modal ── */
+/* ── Modal ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.7);
+  /* removed backdrop-filter: blur — too expensive over a video background */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease both; /* plain fade, no translateY */
+}
+
+.modal {
+  background: #000000;
+  border: 1px solid var(--color-border-hover);
+  border-radius: var(--radius-xl);
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  animation: slideUp 0.2s ease both; /* slightly snappier */
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: color var(--transition);
+  padding: var(--space-xs);
+  line-height: 1;
+}
+
+.modal-close:hover { color: var(--color-text); }
+
+.modal-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* ── Account Detail ── */
+.detail-back {
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  margin-bottom: var(--space-lg);
+  padding: 0;
+  transition: color var(--transition);
+  text-align: left;
+}
+
+.detail-back:hover { color: var(--color-text); }
+
+.detail-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: var(--space-lg);
+  border-left-width: 3px;
+  margin-bottom: var(--space-sm);
+}
+
+.detail-name {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 400;
+  margin: 0.25rem 0 0;
+}
+
+.detail-hero-right { text-align: right; }
+
+.detail-balance-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.detail-balance {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+/* ── Transactions ── */
+.tx-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.tx-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  opacity: 0;
+  animation: slideUp 0.3s ease forwards;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+
+.tx-row:hover { background: var(--color-surface); }
+
+.tx-merchant {
+  font-size: 0.85rem;
+  color: var(--color-text);
+  margin-bottom: 0.2rem;
+}
+
+.tx-date {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+}
+
+.tx-amount {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+}
+
+/* ── ESC Hint ── */
+.esc-hint {
+position: fixed;
+bottom: 1.5rem;
+right: 1.5rem;
+font-size: 0.6rem;
+letter-spacing: 0.15em;
+text-transform: uppercase;
+color: var(--color-text-faint);
+z-index: 20;
+pointer-events: none;
+}
+
+/* ── ESC Menu Sections ── */
+.esc-section {
+border-bottom: 1px solid var(--color-border);
+padding-bottom: 1rem;
+margin-bottom: 1rem;
+}
+
+.esc-section-toggle {
+width: 100%;
+display: flex;
+align-items: center;
+justify-content: space-between;
+background: none;
+border: none;
+color: var(--color-text);
+font-family: var(--font-mono);
+font-size: 0.85rem;
+letter-spacing: 0.05em;
+cursor: pointer;
+padding: 0.25rem 0;
+transition: color var(--transition);
+text-align: left;
+}
+
+.esc-section-toggle:hover {
+color: var(--color-accent);
+}
+
+.esc-chevron {
+font-size: 0.7rem;
+color: var(--color-text-muted);
+}
+
+.esc-section-body {
+display: flex;
+flex-direction: column;
+gap: 0.75rem;
+margin-top: 1rem;
+}
+
+/* ── Success Alert ── */
+.alert-success {
+color: #4ade80;
+font-size: 0.8rem;
+padding: 0.75rem var(--space-md);
+background: rgba(74, 222, 128, 0.06);
+border: 1px solid rgba(74, 222, 128, 0.15);
+border-radius: var(--radius-md);
+}

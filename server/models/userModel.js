@@ -71,4 +71,77 @@ const remove = async (id) => {
   return rows[0] || null;
 };
 
-module.exports = { findByGoogleId, findById, create, remove };
+const findByEmail = async (email) => {
+  const { rows } = await pool.query(
+    `SELECT
+      id,
+      email,
+      password_hash AS "passwordHash",
+      display_name AS "displayName",
+      avatar_url AS "avatarUrl"
+     FROM users
+     WHERE email = $1`,
+    [email]
+  );
+
+  return rows[0] || null;
+};
+
+const createLocalUser = async ({
+  displayName,
+  email,
+  passwordHash
+}) => {
+  const { rows } = await pool.query(
+    `INSERT INTO users (
+      display_name,
+      email,
+      password_hash
+    )
+    VALUES ($1, $2, $3)
+    RETURNING
+    display_name AS "displayName",
+      email,
+      id,
+      avatar_url AS "avatarUrl"`,
+    [displayName, email, passwordHash]
+  );
+
+  return rows[0];
+};
+
+const updateUser = async (id, { displayName, newPassword, avatarUrl }) => {
+  const setClauses = [];
+  const params = [];
+
+  if (displayName) {
+    params.push(displayName);
+    setClauses.push(`display_name = $${params.length}`);
+  }
+
+  if (newPassword) {
+    const bcrypt = require("bcryptjs");
+    const hash = await bcrypt.hash(newPassword, 12);
+    params.push(hash);
+    setClauses.push(`password_hash = $${params.length}`);
+  }
+
+  if (avatarUrl !== undefined) {
+    params.push(avatarUrl);
+    setClauses.push(`avatar_url = $${params.length}`);
+  }
+
+  if (setClauses.length === 0) return null;
+
+  params.push(id);
+  const { rows } = await pool.query(
+    `UPDATE users
+     SET ${setClauses.join(", ")}
+     WHERE id = $${params.length}
+     RETURNING id, email, display_name AS "displayName", avatar_url AS "avatarUrl"`,
+    params
+  );
+  return rows[0] || null;
+};
+
+module.exports = { findByGoogleId, findById, create, remove, createLocalUser, findByEmail, updateUser };
