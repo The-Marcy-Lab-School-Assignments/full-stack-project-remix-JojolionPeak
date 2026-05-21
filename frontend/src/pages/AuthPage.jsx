@@ -27,12 +27,12 @@ export default function AuthPage({ onLoginSuccess }) {
     setLoading(true);
     try {
       if (mode === "login") {
-        await api.post("/auth/login", {
+        await api.post("api/auth/login", {
           email: form.email,
           password: form.password,
         });
       } else {
-        await api.post("/auth/signup", {
+        await api.post("api/auth/signup", {
           displayName: form.displayName,
           email: form.email,
           password: form.password,
