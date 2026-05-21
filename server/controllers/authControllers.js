@@ -20,9 +20,9 @@ const bcrypt = require("bcryptjs");
 const COOKIE_NAME = "token";
 
 const cookieOptions = {
-  httpOnly: true, // not accessible from JS
-  secure: process.env.NODE_ENV === "production", // HTTPS only in prod
-  sameSite: "strict",
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
 };
 
@@ -61,7 +61,7 @@ const googleAuth = passport.authenticate("google", {
 const googleCallback = [
   passport.authenticate("google", {
     session: false,
-    failureRedirect: `${process.env.CLIENT_URL}/login?error=oauth_failed`,
+    failureRedirect: `${process.env.CLIENT_URL}/auth?error=oauth_failed`,
   }),
   (req, res) => {
     const token = signToken(req.user);
@@ -82,10 +82,7 @@ const login = async (req, res, next) => {
       });
     }
 
-    const validPassword = await bcrypt.compare(
-      password,
-      user.passwordHash
-    );
+    const validPassword = await bcrypt.compare(password, user.passwordHash);
 
     if (!validPassword) {
       return res.status(401).json({
@@ -112,7 +109,7 @@ const signup = async (req, res, next) => {
   try {
     const { displayName, email, password } = req.body;
 
-    if (!displayName || !email || !password ) {
+    if (!displayName || !email || !password) {
       return res.status(400).json({
         error: "All fields are required.",
       });
@@ -131,7 +128,7 @@ const signup = async (req, res, next) => {
     const user = await userModel.createLocalUser({
       displayName,
       email,
-      passwordHash
+      passwordHash,
     });
 
     const token = signToken(user);
@@ -154,7 +151,7 @@ const getMe = async (req, res, next) => {
   try {
     const user = await userModel.findById(req.user.id);
     if (!user) {
-      res.clearCookie(COOKIE_NAME);
+      res.clearCookie(COOKIE_NAME, cookieOptions);
       return res.status(401).json({ error: "Account not found." });
     }
     res.json(user);
