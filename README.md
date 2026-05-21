@@ -17,6 +17,7 @@ This is for the person who has wondered "where did my paycheck go?" more than on
 - [Mission Statement](#mission-statement)
 - [MVP User Stories](#mvp-user-stories)
 - [Tech Stack](#tech-stack)
+- [File Structure](#file-structure)
 - [Schema Diagram](#schema-diagram)
 - [API Contract](#api-contract)
 - [Setup Instructions](#setup-instructions)
@@ -93,6 +94,71 @@ This is for the person who has wondered "where did my paycheck go?" more than on
 | API Proxy (dev) | Vite proxy forwards `/api` requests to Express on port 3000 |
 | Seed data | `seed.js` script — drops/recreates all tables and inserts sample data |
 | Environment | `.env` files (never committed); `dotenv` for loading |
+
+---
+
+## File Structure
+
+```
+full-stack-project-remix-JojolionPeak/
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── api/
+│   │   │   └── api.js
+│   │   ├── components/
+│   │   │   ├── dashboard/
+│   │   │   │   ├── AccountCard.jsx
+│   │   │   │   ├── AccountDetail.jsx
+│   │   │   │   ├── CreateAccountModal.jsx
+│   │   │   │   ├── CreateTransactionModal.jsx
+│   │   │   │   ├── dashboardUtils.jsx
+│   │   │   │   ├── EscMenu.jsx
+│   │   │   │   ├── P5Overlay.jsx
+│   │   │   │   └── TransferModal.jsx
+│   │   │   ├── BackgroundVideo.jsx
+│   │   │   ├── LoadingScreen.jsx
+│   │   │   └── RouteTransition.jsx
+│   │   ├── hooks/
+│   │   │   └── useP5Transition.js
+│   │   ├── pages/
+│   │   │   ├── AuthPage.jsx
+│   │   │   ├── DashboardPage.css
+│   │   │   ├── DashboardPage.jsx
+│   │   │   └── NotFoundPage.jsx
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   └── main.jsx
+│   ├── index.html
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── tailwind.config.js
+│   └── vite.config.js
+│
+└── server/
+    ├── controllers/
+    │   ├── accountControllers.js
+    │   ├── authControllers.js
+    │   ├── categoryControllers.js
+    │   ├── summaryControllers.js
+    │   ├── transactionControllers.js
+    │   └── userControllers.js
+    ├── db/
+    │   ├── pool.js
+    │   └── seed.js
+    ├── middleware/
+    │   ├── authenticate.js
+    │   └── logRoutes.js
+    ├── models/
+    │   ├── accountModel.js
+    │   ├── categoryModel.js
+    │   ├── transactionModel.js
+    │   └── userModel.js
+    ├── .env
+    ├── .env.template
+    ├── index.js
+    └── package.json
+```
 
 ---
 
