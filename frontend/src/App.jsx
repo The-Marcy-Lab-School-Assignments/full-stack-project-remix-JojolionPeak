@@ -15,11 +15,15 @@ import RouteTransition from "./components/RouteTransition";
 
 export default function App() {
   const [showLoader, setShowLoader] = useState(false);
+  const [authed, setAuthed] = useState(false);
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const suppressNext = useRef(false);
 
-  const handleLoginSuccess = useCallback(() => setShowLoader(true), []);
+  const handleLoginSuccess = useCallback(() => {
+    setAuthed(true);
+    setShowLoader(true);
+  }, []);
 
   const handleLoaderDone = useCallback(() => {
     setShowLoader(false);
@@ -27,6 +31,7 @@ export default function App() {
   }, [navigate]);
 
   const handleLogout = useCallback(() => {
+    setAuthed(false);
     suppressNext.current = true;
     setShowLoader(true);
     navigate("/auth", { replace: true });
@@ -40,7 +45,14 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/auth" />} />
           <Route path="/auth" element={<AuthPage onLoginSuccess={handleLoginSuccess} />} />
-          <Route path="/dashboard" element={<DashboardPage onLogout={handleLogout} />} />
+          <Route
+            path="/dashboard"
+            element={
+              authed
+                ? <DashboardPage onLogout={handleLogout} />
+                : <Navigate to="/auth" replace />
+            }
+          />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </RouteTransition>
