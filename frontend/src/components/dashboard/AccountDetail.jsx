@@ -254,14 +254,16 @@ export default function AccountDetail({ account, onBack, loadDashboard, allAccou
 }
 
 function EditTransactionModal({ tx, onClose, onUpdated }) {
+
+  const formatDate = (d) => (d ? d.split("T")[0] : "");
   const [form, setForm] = useState({
     amount:          String(Math.abs(tx.amount)),
     type:            tx.type            || "expense",
     status:          tx.status          || "complete",
     description:     tx.description     || "",
     merchant:        tx.merchant        || "",
-    date:            tx.date            || "",
-    authorized_date: tx.authorizedDate  || "",
+    date: formatDate(tx.date)           || "",
+    authorized_date: formatDate(tx.authorizedDate) || "",
   });
   const [error, setError]     = useState("");
   const [loading, setLoading] = useState(false);
