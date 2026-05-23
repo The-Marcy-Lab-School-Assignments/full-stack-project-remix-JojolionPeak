@@ -59,8 +59,13 @@ const updateUser = async (req, res, next) => {
       return res.status(400).json({ error: "Provide a new display name, password, or avatar URL to update." });
     }
 
-    // Re-fetch the user so we can check whether they are an OAuth account
-    const user = await userModel.findByEmail(req.user.email);
+    // Re-fetch the user by ID first (the JWT only carries id, not email),
+    // then use their email to get the full row including passwordHash.
+    const userById = await userModel.findById(id);
+    if (!userById) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    const user = await userModel.findByEmail(userById.email);
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
