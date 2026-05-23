@@ -18,6 +18,7 @@ const createTables = `
   DROP TABLE IF EXISTS accounts      CASCADE;
   DROP TABLE IF EXISTS categories    CASCADE;
   DROP TABLE IF EXISTS users         CASCADE;
+  DROP TABLE IF EXISTS token_denylist CASCADE;
 
   -- Users created via Google OAuth
   CREATE TABLE users (
@@ -109,6 +110,14 @@ const createTables = `
   -- Optimizes joins/filtering by account_id
   CREATE INDEX idx_transactions_account
   ON transactions(account_id);
+
+  CREATE TABLE token_denylist (
+  jti        TEXT PRIMARY KEY,
+  expires_at TIMESTAMPTZ NOT NULL
+  );
+  
+  CREATE INDEX idx_denylist_expires_at
+  ON token_denylist(expires_at);
 `;
 
 // ─── Global Default Categories ────────────────────────────────────────────────

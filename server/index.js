@@ -32,6 +32,7 @@ const accountControllers = require("./controllers/accountControllers");
 const transactionControllers = require("./controllers/transactionControllers");
 const summaryControllers = require("./controllers/summaryControllers");
 const categoryControllers = require("./controllers/categoryControllers");
+const cleanupJob = require("./cleanupJob");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -249,3 +250,5 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`🚀  Server running at http://localhost:${PORT}`);
 });
+
+cleanupJob.start();

@@ -1,21 +1,13 @@
 /**
  * controllers/authControllers.js
- *
- * Handles the Google OAuth flow and JWT cookie lifecycle.
- *
- * Flow:
- *   1. GET /auth/google          → Passport redirects to Google
- *   2. GET /auth/google/callback → Passport callback; we issue a JWT and redirect
- *   3. GET /api/auth/me          → Returns the token owner's profile
- *   4. POST /api/auth/logout     → Clears the JWT cookie
  */
 
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
+const { v4: uuidv4 } = require("uuid");
 const userModel = require("../models/userModel");
+const denylistModel = require("../models/tokenDenylistModel");
 const bcrypt = require("bcryptjs");
-
-// ─── JWT Cookie Config ────────────────────────────────────────────────────────
 
 const COOKIE_NAME = "token";
 
@@ -23,61 +15,39 @@ const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+  maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
-/**
- * Build and sign a JWT containing only the user's id.
- * Keeping the payload minimal ensures the cookie stays well under
- * the 4 kb browser limit — especially important when avatarUrl is
- * a large base64 string rather than a URL.
- * @param {object} user — { id }
- * @returns {string} signed JWT
- */
-const signToken = (user) =>
-  jwt.sign(
-    { id: user.id },
+const signToken = (user) => {
+  const jti = uuidv4();
+  const expiresIn = process.env.JWT_EXPIRES_IN || "7d";
+  const token = jwt.sign(
+    { id: user.id, jti },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+    { expiresIn }
   );
+  return { token, jti };
+};
 
-// Constant-time dummy hash used when a user is not found.
-// Ensures the bcrypt comparison always runs regardless of whether the email
-// exists, preventing timing-based email enumeration.
 const DUMMY_HASH =
   "$2b$12$invalidhashfortimingprotectionxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 
-// ─── Validation Helpers ───────────────────────────────────────────────────────
-
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 const normaliseEmail = (email) =>
   typeof email === "string" ? email.toLowerCase().trim() : "";
-
 const validateEmail = (email) => EMAIL_REGEX.test(email);
 
-// ─── Controller Functions ─────────────────────────────────────────────────────
-
-/**
- * GET /auth/google
- * Kicks off the OAuth flow. Passport handles the redirect — no body needed.
- */
 const googleAuth = passport.authenticate("google", {
   scope: ["profile", "email"],
 });
 
-/**
- * GET /auth/google/callback
- * Passport has already validated the code and attached req.user (the DB row).
- * We sign a JWT, set it as a cookie, and redirect the browser to the dashboard.
- */
 const googleCallback = [
   passport.authenticate("google", {
     session: false,
     failureRedirect: `${process.env.CLIENT_URL}/auth?error=oauth_failed`,
   }),
   (req, res) => {
-    const token = signToken(req.user);
+    const { token } = signToken(req.user);
     res.cookie(COOKIE_NAME, token, cookieOptions);
     res.redirect(`${process.env.CLIENT_URL}/dashboard`);
   },
@@ -92,9 +62,6 @@ const login = async (req, res, next) => {
     }
 
     const normEmail = normaliseEmail(email);
-
-    // Always fetch the user then always run bcrypt, even when no user exists.
-    // This keeps response time constant and prevents timing-based email enumeration.
     const user = await userModel.findByEmail(normEmail);
     const hashToCompare = user?.passwordHash || DUMMY_HASH;
     const validPassword = await bcrypt.compare(password, hashToCompare);
@@ -103,7 +70,7 @@ const login = async (req, res, next) => {
       return res.status(401).json({ error: "Invalid credentials." });
     }
 
-    const token = signToken(user);
+    const { token } = signToken(user);
     res.cookie(COOKIE_NAME, token, cookieOptions);
 
     res.json({
@@ -125,8 +92,6 @@ const signup = async (req, res, next) => {
       return res.status(400).json({ error: "All fields are required." });
     }
 
-    // ── Input validation ──────────────────────────────────────────────────────
-
     if (typeof displayName !== "string" || displayName.trim().length === 0) {
       return res.status(400).json({ error: "Display name cannot be blank." });
     }
@@ -143,11 +108,8 @@ const signup = async (req, res, next) => {
       return res.status(400).json({ error: "Password must be at least 8 characters." });
     }
     if (password.length > 128) {
-      // Prevents bcrypt CPU-DoS via huge strings
       return res.status(400).json({ error: "Password must be 128 characters or fewer." });
     }
-
-    // ── Uniqueness check ──────────────────────────────────────────────────────
 
     const existingUser = await userModel.findByEmail(normEmail);
     if (existingUser) {
@@ -155,14 +117,13 @@ const signup = async (req, res, next) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-
     const user = await userModel.createLocalUser({
       displayName: displayName.trim(),
       email: normEmail,
       passwordHash,
     });
 
-    const token = signToken(user);
+    const { token } = signToken(user);
     res.cookie(COOKIE_NAME, token, cookieOptions);
     res.status(201).json(user);
   } catch (err) {
@@ -170,12 +131,6 @@ const signup = async (req, res, next) => {
   }
 };
 
-/**
- * GET /api/auth/me
- * Returns the authenticated user's profile.
- * The `authenticate` middleware has already verified the token and set req.user.
- * We re-fetch from the DB to confirm the account still exists.
- */
 const getMe = async (req, res, next) => {
   try {
     const user = await userModel.findById(req.user.id);
@@ -189,14 +144,22 @@ const getMe = async (req, res, next) => {
   }
 };
 
-/**
- * POST /api/auth/logout
- * Clears the JWT cookie. Because JWTs are stateless, this is the full
- * "invalidation" — the token becomes unreachable from the browser.
- */
-const logout = (req, res) => {
+const logout = async (req, res) => {
+  const token = req.cookies?.token;
+
+  if (token) {
+    try {
+      const decoded = jwt.decode(token);
+      if (decoded?.jti && decoded?.exp) {
+        await denylistModel.add(decoded.jti, decoded.exp);
+      }
+    } catch (err) {
+      console.error("⚠️ Failed to denylist token on logout:", err.message);
+    }
+  }
+
   res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: 0 });
-  res.send({ message: "Logged out." });
+  res.json({ message: "Logged out." });
 };
 
 module.exports = { googleAuth, googleCallback, login, signup, getMe, logout };
