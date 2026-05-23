@@ -19,6 +19,8 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 
 const pool = require("./db/pool");
 const logRoutes = require("./middleware/logRoutes");
@@ -36,6 +38,8 @@ const PORT = process.env.PORT || 3000;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
+app.use(helmet());
+
 app.use(
   cors({
     origin: process.env.CLIENT_URL, // e.g. http://localhost:5173
@@ -43,43 +47,33 @@ app.use(
   })
 );
 
-app.use(express.json());
+// Reject request bodies larger than 10 kb — prevents memory-exhaustion attacks
+// and stops attackers from sending huge strings to bcrypt (CPU DoS vector).
+app.use(express.json({ limit: "10kb" }));
 app.use(cookieParser());
 app.use(logRoutes);
 app.use(passport.initialize());
 
-// DEV ONLY — remove before production
-if (process.env.NODE_ENV === "development") {
-  app.get("/dev/login/:email", async (req, res) => {
-    const jwt = require("jsonwebtoken");
+// ─── Rate Limiters ────────────────────────────────────────────────────────────
 
-    const { rows } = await pool.query("SELECT * FROM users WHERE email = $1", [
-      req.params.email,
-    ]);
-    const user = rows[0];
-    if (!user) return res.status(404).json({ error: "User not found" });
+// Strict limiter for auth endpoints — 10 attempts per IP per 15 minutes.
+// Blocks brute-force password attacks and signup spam.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: "Too many attempts. Please wait 15 minutes and try again." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        displayName: user.display_name,
-        avatarUrl: user.avatar_url,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite:
-        process.env.NODE_ENV === "production"
-          ? "none"
-          : "lax",
-    });
-    res.json({ message: `Logged in as ${user.email}`, id: user.id });
-  });
-}
+// General API limiter — generous enough for normal use but blocks scripted abuse.
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  message: { error: "Too many requests. Please slow down." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // ─── Passport: Google OAuth Strategy ─────────────────────────────────────────
 //
@@ -133,11 +127,14 @@ passport.use(
 app.get("/auth/google", authControllers.googleAuth);
 app.get("/auth/google/callback", ...authControllers.googleCallback);
 
-// Auth API
+// Auth API — strict rate limiter on login/signup to block brute-force
 app.get("/api/auth/me", authenticate, authControllers.getMe);
-app.post("/api/auth/signup", authControllers.signup);
-app.post("/api/auth/login", authControllers.login);
+app.post("/api/auth/signup", authLimiter, authControllers.signup);
+app.post("/api/auth/login",  authLimiter, authControllers.login);
 app.post("/api/auth/logout", authControllers.logout);
+
+// General API rate limiter applied to all remaining /api routes
+app.use("/api/", apiLimiter);
 
 // Users
 app.delete("/api/users/:id", authenticate, userControllers.deleteUser);

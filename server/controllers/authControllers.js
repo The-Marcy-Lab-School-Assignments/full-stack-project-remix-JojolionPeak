@@ -41,6 +41,21 @@ const signToken = (user) =>
     { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
   );
 
+// Constant-time dummy hash used when a user is not found.
+// Ensures the bcrypt comparison always runs regardless of whether the email
+// exists, preventing timing-based email enumeration.
+const DUMMY_HASH =
+  "$2b$12$invalidhashfortimingprotectionxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+
+// ─── Validation Helpers ───────────────────────────────────────────────────────
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const normaliseEmail = (email) =>
+  typeof email === "string" ? email.toLowerCase().trim() : "";
+
+const validateEmail = (email) => EMAIL_REGEX.test(email);
+
 // ─── Controller Functions ─────────────────────────────────────────────────────
 
 /**
@@ -72,24 +87,23 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await userModel.findByEmail(email);
-
-    if (!user || !user.passwordHash) {
-      return res.status(401).json({
-        error: "Invalid credentials.",
-      });
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
     }
 
-    const validPassword = await bcrypt.compare(password, user.passwordHash);
+    const normEmail = normaliseEmail(email);
 
-    if (!validPassword) {
-      return res.status(401).json({
-        error: "Invalid credentials.",
-      });
+    // Always fetch the user then always run bcrypt, even when no user exists.
+    // This keeps response time constant and prevents timing-based email enumeration.
+    const user = await userModel.findByEmail(normEmail);
+    const hashToCompare = user?.passwordHash || DUMMY_HASH;
+    const validPassword = await bcrypt.compare(password, hashToCompare);
+
+    if (!user || !user.passwordHash || !validPassword) {
+      return res.status(401).json({ error: "Invalid credentials." });
     }
 
     const token = signToken(user);
-
     res.cookie(COOKIE_NAME, token, cookieOptions);
 
     res.json({
@@ -108,31 +122,48 @@ const signup = async (req, res, next) => {
     const { displayName, email, password } = req.body;
 
     if (!displayName || !email || !password) {
-      return res.status(400).json({
-        error: "All fields are required.",
-      });
+      return res.status(400).json({ error: "All fields are required." });
     }
 
-    const existingUser = await userModel.findByEmail(email);
+    // ── Input validation ──────────────────────────────────────────────────────
 
+    if (typeof displayName !== "string" || displayName.trim().length === 0) {
+      return res.status(400).json({ error: "Display name cannot be blank." });
+    }
+    if (displayName.length > 100) {
+      return res.status(400).json({ error: "Display name must be 100 characters or fewer." });
+    }
+
+    const normEmail = normaliseEmail(email);
+    if (!validateEmail(normEmail)) {
+      return res.status(400).json({ error: "Please enter a valid email address." });
+    }
+
+    if (typeof password !== "string" || password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters." });
+    }
+    if (password.length > 128) {
+      // Prevents bcrypt CPU-DoS via huge strings
+      return res.status(400).json({ error: "Password must be 128 characters or fewer." });
+    }
+
+    // ── Uniqueness check ──────────────────────────────────────────────────────
+
+    const existingUser = await userModel.findByEmail(normEmail);
     if (existingUser) {
-      return res.status(409).json({
-        error: "Email already in use.",
-      });
+      return res.status(409).json({ error: "Email already in use." });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
 
     const user = await userModel.createLocalUser({
-      displayName,
-      email,
+      displayName: displayName.trim(),
+      email: normEmail,
       passwordHash,
     });
 
     const token = signToken(user);
-
     res.cookie(COOKIE_NAME, token, cookieOptions);
-
     res.status(201).json(user);
   } catch (err) {
     next(err);

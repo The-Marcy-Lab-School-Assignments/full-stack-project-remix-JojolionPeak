@@ -34,8 +34,10 @@ const resolveDateRange = (query) => {
 const listTransactions = async (req, res, next) => {
   try {
     const { from, to } = resolveDateRange(req.query);
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
+    // Floor page at 1 so negative/zero values don't produce a negative OFFSET.
+    const page  = Math.max(1, parseInt(req.query.page,  10) || 1);
+    // Cap limit at 100 — prevents a single request from dumping the entire table.
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
     const type = req.query.type || undefined;
     const status = req.query.status || undefined;
     const categoryId = req.query.category_id || undefined;
@@ -84,6 +86,14 @@ const createTransaction = async (req, res, next) => {
 
     if (status && !VALID_STATUSES.includes(status)) {
       return res.status(400).json({ error: `status must be one of: ${VALID_STATUSES.join(", ")}.` });
+    }
+
+    if (merchant && merchant.length > 200) {
+      return res.status(400).json({ error: "Merchant name must be 200 characters or fewer." });
+    }
+
+    if (description && description.length > 500) {
+      return res.status(400).json({ error: "Description must be 500 characters or fewer." });
     }
 
     const transaction = await transactionModel.create(req.user.id, {
@@ -140,6 +150,14 @@ const updateTransaction = async (req, res, next) => {
 
     if (amount !== undefined && (isNaN(parseFloat(amount)) || parseFloat(amount) === 0)) {
       return res.status(400).json({ error: "amount must be a non-zero number." });
+    }
+
+    if (merchant !== undefined && merchant !== null && merchant.length > 200) {
+      return res.status(400).json({ error: "Merchant name must be 200 characters or fewer." });
+    }
+
+    if (description !== undefined && description !== null && description.length > 500) {
+      return res.status(400).json({ error: "Description must be 500 characters or fewer." });
     }
 
     const existing = await transactionModel.findById(id);
