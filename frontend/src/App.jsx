@@ -20,7 +20,7 @@ export default function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const suppressNext = useRef(false);
+  const suppressNext = useRef(true);
   const pendingNav = useRef(null);
 
   useEffect(() => {
