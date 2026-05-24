@@ -1,32 +1,31 @@
-import { useEffect, useRef, useState } from "react";
-
-/**
- * RouteTransition
- *
- * Wraps your router outlet. Whenever `location` changes (and `isLogoPlaying`
- * is false), the Persona 5 art slides in from the left, pauses briefly, then
- * slides out to the right — revealing the new page underneath.
- *
- * Props:
- *   location      — current route string (e.g. from useLocation().pathname)
- *   isLogoPlaying — boolean; pass `true` while your intro logo animation runs
- *   children      — the page content to render
- *
- * Usage (React Router v6 example):
- *   const { pathname } = useLocation();
- *   <RouteTransition location={pathname} isLogoPlaying={logoRunning}>
- *     <Outlet />
- *   </RouteTransition>
- */
+import { useEffect, useRef, useState, useCallback } from "react";
 
 const SLIDE_DURATION = 400;  
 const HOLD_DURATION  = 320;  
 
-export default function RouteTransition({ location, isLogoPlaying, suppressNext, children }) {
+export default function RouteTransition({ location, isLogoPlaying, suppressNext, onRegisterTrigger, children }) {
   const [phase, setPhase] = useState("idle");
   const prevLocation = useRef(location);
   const timerA = useRef(null);
   const timerB = useRef(null);
+
+  // Imperative trigger: starts animation, fires callback at midpoint
+  const trigger = useCallback((onMidpoint) => {
+    clearTimeout(timerA.current);
+    clearTimeout(timerB.current);
+
+    setPhase("slide-in");
+    timerA.current = setTimeout(() => {
+      onMidpoint?.();
+      setPhase("slide-out");
+      timerB.current = setTimeout(() => setPhase("idle"), SLIDE_DURATION);
+    }, SLIDE_DURATION + HOLD_DURATION);
+  }, []);
+
+  // Give App.jsx (or anyone) access to the trigger via a ref
+  useEffect(() => {
+    if (onRegisterTrigger) onRegisterTrigger(trigger);
+  }, [trigger, onRegisterTrigger]);
 
   useEffect(() => {
     if (location === prevLocation.current) return;
@@ -85,21 +84,6 @@ export default function RouteTransition({ location, isLogoPlaying, suppressNext,
     background: "#0d0d0d",
     position:   "relative",
     overflow:   "hidden",
-  };
-
-  const artStyle = {
-    position:   "absolute",
-    top:        "50%",
-    left:       "50%",
-    transform:  "translate(-50%, -50%)",
-    width:      "min(90vw, 600px)",
-    aspectRatio: "3 / 4.2",
-    zIndex:     1,
-    backgroundImage:    `url("./persona5_swipe_menu.png")`,
-    backgroundSize:     "cover",
-    backgroundPosition: "center",
-    filter:     "drop-shadow(0 0 24px rgba(255,255,255,0.25))",
-    rotate:     "-2deg",
   };
 
   const slashStyle = {
@@ -177,21 +161,22 @@ export default function RouteTransition({ location, isLogoPlaying, suppressNext,
 
           <div style={slashStyle} />
 
-          <div
-            style={{
-              ...artStyle,
-              backgroundImage: "none",
-            }}
-          >
+          <div style={{
+            position:   "absolute",
+            top:        "50%",
+            left:       "50%",
+            transform:  "translate(-50%, -50%) rotate(-2deg)",
+            width:      "min(90vw, 600px)",
+            aspectRatio: "3 / 4.2",
+            zIndex:     1,
+            filter:     "drop-shadow(0 0 24px rgba(255,255,255,0.25))",
+          }}>
             <img
               src="/persona5_swipe_menu.png"
               alt=""
               style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                display: "block",
-                borderRadius: "2px",
+                width: "100%", height: "100%",
+                objectFit: "cover", display: "block", borderRadius: "2px",
               }}
             />
           </div>

@@ -5,7 +5,7 @@ import CreateCategoryModal from "../components/dashboard/CreateCategoryModal";
 import { useDelayedNavigate } from "../hooks/useDelayedNavigate";
 
 
-export default function CategoriesPage() {
+export default function CategoriesPage({ navigateWithTransition }) {
   const delayedNavigate = useDelayedNavigate();
 
   const [categories, setCategories] = useState([]);
@@ -60,7 +60,7 @@ export default function CategoriesPage() {
           <button
             className="btn btn-ghost"
             style={{ fontSize: "0.75rem", alignSelf: "flex-start", marginTop: "0.4rem" }}
-            onClick={() => delayedNavigate("/dashboard")}
+            onClick={() => navigateWithTransition("/dashboard")}
           >
             ← Dashboard
           </button>

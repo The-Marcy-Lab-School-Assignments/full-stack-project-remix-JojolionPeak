@@ -17,12 +17,15 @@ import { api } from "./api/api";
 
 export default function App() {
   const [showLoader, setShowLoader] = useState(false);
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed]         = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const { pathname } = useLocation();
-  const navigate = useNavigate();
+  const navigate     = useNavigate();
   const suppressNext = useRef(true);
-  const pendingNav = useRef(null);
+  const pendingNav   = useRef(null);
+
+  // Holds the trigger function registered by RouteTransition
+  const transitionTrigger = useRef(null);
 
   useEffect(() => {
     api.get("/api/auth/me")
@@ -52,13 +55,32 @@ export default function App() {
     setShowLoader(true);
   }, []);
 
+  /**
+   * navigateWithTransition(path)
+   * Fires the RouteTransition panel first, navigates at the midpoint.
+   * Suppresses the pathname-watcher so it doesn't double-animate.
+   */
+  const navigateWithTransition = useCallback((path) => {
+    if (!transitionTrigger.current) {
+      navigate(path);
+      return;
+    }
+    suppressNext.current = true;
+    transitionTrigger.current(() => navigate(path));
+  }, [navigate]);
+
   if (!authChecked) return null;
 
   return (
     <>
       {showLoader && <LoadingScreen onDone={handleLoaderDone} />}
 
-      <RouteTransition location={pathname} isLogoPlaying={showLoader} suppressNext={suppressNext}>
+      <RouteTransition
+        location={pathname}
+        isLogoPlaying={showLoader}
+        suppressNext={suppressNext}
+        onRegisterTrigger={(fn) => { transitionTrigger.current = fn; }}
+      >
         <Routes>
           <Route path="/" element={<Navigate to={authed ? "/dashboard" : "/auth"} />} />
           <Route path="/auth" element={<AuthPage onLoginSuccess={handleLoginSuccess} />} />
@@ -66,7 +88,7 @@ export default function App() {
             path="/dashboard"
             element={
               authed
-                ? <DashboardPage onLogout={handleLogout} />
+                ? <DashboardPage onLogout={handleLogout} navigateWithTransition={navigateWithTransition} />
                 : <Navigate to="/auth" replace />
             }
           />
@@ -74,7 +96,7 @@ export default function App() {
             path="/categories"
             element={
               authed
-                ? <CategoriesPage />
+                ? <CategoriesPage navigateWithTransition={navigateWithTransition} />
                 : <Navigate to="/auth" replace />
             }
           />

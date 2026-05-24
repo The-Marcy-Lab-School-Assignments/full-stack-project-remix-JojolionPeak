@@ -9,11 +9,9 @@ import AccountDetail from "../components/dashboard/AccountDetail";
 import CreateAccountModal from "../components/dashboard/CreateAccountModal";
 import EscMenu from "../components/dashboard/EscMenu";
 import "./DashboardPage.css";
-import { useDelayedNavigate } from "../hooks/useDelayedNavigate";
 
-export default function DashboardPage({ onLogout }) {
+export default function DashboardPage({ onLogout, navigateWithTransition }) {
   const navigate = useNavigate();
-  const delayedNavigate = useDelayedNavigate();
 
   const [user, setUser]                 = useState(null);
   const [accounts, setAccounts]         = useState([]);
@@ -147,7 +145,7 @@ export default function DashboardPage({ onLogout }) {
 
               <button
                 className="btn-categories"
-                onClick={() => delayedNavigate("/categories")}
+                onClick={() => navigateWithTransition("/categories")}
               >
                 ◈ Manage Categories
               </button>
