@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../../api/api";
 
 export default function CreateTransactionModal({ accountId, onClose, onCreated }) {
@@ -6,12 +6,35 @@ export default function CreateTransactionModal({ accountId, onClose, onCreated }
 
   const [form, setForm] = useState({
     amount: "", type: "expense", status: "complete",
-    description: "", merchant: "", date: today, authorized_date: "",
+    description: "", merchant: "", date: today,
+    authorized_date: "", category_id: "",
   });
-  const [error, setError]     = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, setError]         = useState("");
+  const [loading, setLoading]     = useState(false);
+  const [categories, setCategories]       = useState([]);
+  const [catsLoading, setCatsLoading]     = useState(true);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Fetch categories once on mount
+  useEffect(() => {
+    let cancelled = false;
+    api.get("/api/categories")
+      .then((res) => { if (!cancelled) setCategories(res.data); })
+      .catch(() => {}) // non-fatal — user can still create uncategorized
+      .finally(() => { if (!cancelled) setCatsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Reset category when type changes so a stale selection isn't silently kept
+  const handleTypeChange = (t) => {
+    setForm((f) => ({ ...f, type: t, category_id: "" }));
+  };
+
+  // Filtered category list based on current transaction type
+  const filteredCategories = categories.filter((c) =>
+    c.type === form.type || c.type === "both"
+  );
 
   const handleSubmit = async () => {
     if (!form.amount || !form.type || !form.date) {
@@ -33,6 +56,7 @@ export default function CreateTransactionModal({ accountId, onClose, onCreated }
         ...form,
         amount: signedAmount,
         account_id: accountId,
+        category_id: form.category_id || undefined,
         authorized_date: form.authorized_date || undefined,
       });
       onCreated();
@@ -47,7 +71,7 @@ export default function CreateTransactionModal({ accountId, onClose, onCreated }
     <button
       key={t}
       className="btn"
-      onClick={() => set("type", t)}
+      onClick={() => handleTypeChange(t)}
       style={{
         flex: 1,
         background:  form.type === t ? (t === "expense" ? "var(--color-error)" : "#4ade80") : "transparent",
@@ -79,10 +103,45 @@ export default function CreateTransactionModal({ accountId, onClose, onCreated }
 
           <input className="input" type="number" placeholder="Amount *" min="0" step="0.01"
             value={form.amount} onChange={(e) => set("amount", e.target.value)} />
+
           <input className="input" placeholder="Merchant"
             value={form.merchant} onChange={(e) => set("merchant", e.target.value)} />
+
           <input className="input" placeholder="Description"
             value={form.description} onChange={(e) => set("description", e.target.value)} />
+
+          {/* Category selector */}
+          <div>
+            <p style={{
+              fontSize: "0.65rem", letterSpacing: "0.1em",
+              color: "var(--color-text-muted)", textTransform: "uppercase",
+              marginBottom: "0.35rem",
+            }}>
+              Category
+            </p>
+            {catsLoading ? (
+              <div className="input" style={{ opacity: 0.5, pointerEvents: "none" }}>
+                Loading categories…
+              </div>
+            ) : (
+              <select
+                className="input"
+                value={form.category_id}
+                onChange={(e) => set("category_id", e.target.value)}
+              >
+                <option value="">— Uncategorized —</option>
+                {filteredCategories.length === 0 ? (
+                  <option disabled>No categories for this type</option>
+                ) : (
+                  filteredCategories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.icon ? `${c.icon} ` : ""}{c.name}
+                    </option>
+                  ))
+                )}
+              </select>
+            )}
+          </div>
 
           <div className="modal-row">
             <div>

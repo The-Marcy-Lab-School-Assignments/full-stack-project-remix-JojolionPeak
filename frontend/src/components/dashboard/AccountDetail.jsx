@@ -149,22 +149,47 @@ export default function AccountDetail({ account, onBack, loadDashboard, allAccou
                 onClick={() => setEditingTx(tx)}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1 }}>
-                  {tx.category?.icon && (
-                    <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>{tx.category.icon}</span>
-                  )}
-                  <div>
+                  {/* Category icon or fallback dot */}
+                  <span style={{
+                    fontSize: "1.1rem", lineHeight: 1, flexShrink: 0,
+                    opacity: tx.category?.icon ? 1 : 0.3,
+                  }}>
+                    {tx.category?.icon || "◈"}
+                  </span>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <p className="tx-merchant">{tx.merchant || tx.description || "—"}</p>
-                    <p className="tx-date">
-                      {tx.date}
-                      {tx.status === "pending" && (
-                        <span style={{ marginLeft: "0.4rem", color: "#f59e0b", fontSize: "0.6rem", letterSpacing: "0.1em" }}>
-                          PENDING
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                      <p className="tx-date">
+                        {tx.date}
+                        {tx.status === "pending" && (
+                          <span style={{ marginLeft: "0.4rem", color: "#f59e0b", fontSize: "0.6rem", letterSpacing: "0.1em" }}>
+                            PENDING
+                          </span>
+                        )}
+                      </p>
+                      {/* Category name badge */}
+                      {tx.category?.name && (
+                        <span style={{
+                          fontSize: "0.6rem",
+                          letterSpacing: "0.1em",
+                          textTransform: "uppercase",
+                          color: tx.category.color || "var(--color-text-faint)",
+                          background: tx.category.color
+                            ? `${tx.category.color}18`
+                            : "rgba(255,255,255,0.05)",
+                          padding: "0.15rem 0.4rem",
+                          borderRadius: "var(--radius-sm)",
+                          whiteSpace: "nowrap",
+                        }}>
+                          {tx.category.name}
                         </span>
                       )}
-                    </p>
+                    </div>
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexShrink: 0 }}>
                   <p className="tx-amount" style={{ color: amtColor }}>
                     <span style={{ fontSize: "0.85em" }}>{sign}</span>
                     <MoneySymbol color={amtColor} />
@@ -253,22 +278,47 @@ export default function AccountDetail({ account, onBack, loadDashboard, allAccou
   );
 }
 
-function EditTransactionModal({ tx, onClose, onUpdated }) {
+// ─── EditTransactionModal ─────────────────────────────────────────────────────
 
+function EditTransactionModal({ tx, onClose, onUpdated }) {
   const formatDate = (d) => (d ? d.split("T")[0] : "");
+
   const [form, setForm] = useState({
     amount:          String(Math.abs(tx.amount)),
     type:            tx.type            || "expense",
     status:          tx.status          || "complete",
     description:     tx.description     || "",
     merchant:        tx.merchant        || "",
-    date: formatDate(tx.date)           || "",
+    date:            formatDate(tx.date) || "",
     authorized_date: formatDate(tx.authorizedDate) || "",
+    category_id:     tx.category?.id   || "",
   });
-  const [error, setError]     = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, setError]               = useState("");
+  const [loading, setLoading]           = useState(false);
+  const [categories, setCategories]     = useState([]);
+  const [catsLoading, setCatsLoading]   = useState(true);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Fetch categories once on mount
+  useEffect(() => {
+    let cancelled = false;
+    api.get("/api/categories")
+      .then((res) => { if (!cancelled) setCategories(res.data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setCatsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Reset category when type changes to avoid stale cross-type selection
+  const handleTypeChange = (t) => {
+    setForm((f) => ({ ...f, type: t, category_id: "" }));
+  };
+
+  // Filtered list: only show categories matching the current transaction type
+  const filteredCategories = categories.filter((c) =>
+    c.type === form.type || c.type === "both"
+  );
 
   const handleSubmit = async () => {
     if (!form.amount || !form.type || !form.date) {
@@ -288,6 +338,7 @@ function EditTransactionModal({ tx, onClose, onUpdated }) {
       await api.put(`/api/transactions/${tx.id}`, {
         ...form,
         amount: signedAmount,
+        category_id: form.category_id || null,
         authorized_date: form.authorized_date || undefined,
       });
       onUpdated();
@@ -302,7 +353,7 @@ function EditTransactionModal({ tx, onClose, onUpdated }) {
     <button
       key={t}
       className="btn"
-      onClick={() => set("type", t)}
+      onClick={() => handleTypeChange(t)}
       style={{
         flex: 1,
         background:  form.type === t ? (t === "expense" ? "var(--color-error)" : "#4ade80") : "transparent",
@@ -323,18 +374,57 @@ function EditTransactionModal({ tx, onClose, onUpdated }) {
           <p className="eyebrow">Edit Transaction</p>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
+
         {error && <p className="alert-error">{error}</p>}
+
         <div className="modal-fields">
           <div style={{ display: "flex", gap: "0.5rem" }}>
             {typeBtn("expense", "− Expense")}
             {typeBtn("income",  "+ Income")}
           </div>
+
           <input className="input" type="number" placeholder="Amount *" min="0" step="0.01"
             value={form.amount} onChange={(e) => set("amount", e.target.value)} />
+
           <input className="input" placeholder="Merchant"
             value={form.merchant} onChange={(e) => set("merchant", e.target.value)} />
+
           <input className="input" placeholder="Description"
             value={form.description} onChange={(e) => set("description", e.target.value)} />
+
+          {/* Category selector */}
+          <div>
+            <p style={{
+              fontSize: "0.65rem", letterSpacing: "0.1em",
+              color: "var(--color-text-muted)", textTransform: "uppercase",
+              marginBottom: "0.35rem",
+            }}>
+              Category
+            </p>
+            {catsLoading ? (
+              <div className="input" style={{ opacity: 0.5, pointerEvents: "none" }}>
+                Loading categories…
+              </div>
+            ) : (
+              <select
+                className="input"
+                value={form.category_id}
+                onChange={(e) => set("category_id", e.target.value)}
+              >
+                <option value="">— Uncategorized —</option>
+                {filteredCategories.length === 0 ? (
+                  <option disabled>No categories for this type</option>
+                ) : (
+                  filteredCategories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.icon ? `${c.icon} ` : ""}{c.name}
+                    </option>
+                  ))
+                )}
+              </select>
+            )}
+          </div>
+
           <div className="modal-row">
             <div>
               <p style={{ fontSize: "0.65rem", letterSpacing: "0.1em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: "0.35rem" }}>Date *</p>
@@ -347,11 +437,13 @@ function EditTransactionModal({ tx, onClose, onUpdated }) {
                 onChange={(e) => set("authorized_date", e.target.value)} />
             </div>
           </div>
+
           <select className="input" value={form.status} onChange={(e) => set("status", e.target.value)}>
             <option value="complete">Complete</option>
             <option value="pending">Pending</option>
           </select>
         </div>
+
         <div className="modal-actions">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>
@@ -362,6 +454,8 @@ function EditTransactionModal({ tx, onClose, onUpdated }) {
     </div>
   );
 }
+
+// ─── EditAccountModal ─────────────────────────────────────────────────────────
 
 function EditAccountModal({ account, onClose, onUpdated }) {
   const [form, setForm] = useState({
