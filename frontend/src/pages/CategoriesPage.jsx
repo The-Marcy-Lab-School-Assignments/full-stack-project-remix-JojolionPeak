@@ -2,11 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import BackgroundVideo from "../components/BackgroundVideo";
 import { api } from "../api/api";
 import CreateCategoryModal from "../components/dashboard/CreateCategoryModal";
-import { useDelayedNavigate } from "../hooks/useDelayedNavigate";
 
 
 export default function CategoriesPage({ navigateWithTransition }) {
-  const delayedNavigate = useDelayedNavigate();
 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading]       = useState(true);
