@@ -5,6 +5,7 @@
  *
  * Responsibilities:
  *  - Load environment variables
+ *  - Validate required env vars before anything else
  *  - Configure middleware (CORS, JSON parsing, cookie parsing, logging)
  *  - Configure Passport Google OAuth strategy
  *  - Mount all route groups
@@ -13,6 +14,20 @@
  */
 
 require("dotenv").config();
+
+// ─── Environment Validation ───────────────────────────────────────────────────
+// Fail fast if required secrets are missing. This prevents silent failures
+// where jwt.sign() would use 'undefined' as the secret, allowing token forgery.
+
+if (!process.env.JWT_SECRET) {
+  console.error("❌  JWT_SECRET is not set. Exiting.");
+  process.exit(1);
+}
+
+if (!process.env.DATABASE_URL && !(process.env.DB_HOST && process.env.DB_NAME)) {
+  console.error("❌  Database connection env vars are not set. Exiting.");
+  process.exit(1);
+}
 
 const express = require("express");
 const cors = require("cors");
@@ -57,12 +72,22 @@ app.use(passport.initialize());
 
 // ─── Rate Limiters ────────────────────────────────────────────────────────────
 
-// Strict limiter for auth endpoints — 10 attempts per IP per 15 minutes.
-// Blocks brute-force password attacks and signup spam.
-const authLimiter = rateLimit({
+// Strict limiter for login — 10 attempts per IP per 15 minutes.
+// Blocks brute-force password attacks.
+const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   message: { error: "Too many attempts. Please wait 15 minutes and try again." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Tighter limiter for signup — 5 attempts per IP per 15 minutes.
+// Signup abuse is cheaper to execute than login abuse, so a lower cap is safer.
+const signupLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: "Too many sign-up attempts. Please wait 15 minutes and try again." },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -124,28 +149,28 @@ passport.use(
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
+// General API rate limiter applied to all /api routes
+app.use("/api/", apiLimiter);
+
 // OAuth — not prefixed with /api because these are browser redirects
 app.get("/auth/google", authControllers.googleAuth);
 app.get("/auth/google/callback", ...authControllers.googleCallback);
 
-// Auth API — strict rate limiter on login/signup to block brute-force
+// Auth API — dedicated rate limiters on login/signup to block brute-force
 app.get("/api/auth/me", authenticate, authControllers.getMe);
-app.post("/api/auth/signup", authLimiter, authControllers.signup);
-app.post("/api/auth/login",  authLimiter, authControllers.login);
-app.post("/api/auth/logout", authControllers.logout);
-
-// General API rate limiter applied to all remaining /api routes
-app.use("/api/", apiLimiter);
+app.post("/api/auth/signup", signupLimiter, authControllers.signup);
+app.post("/api/auth/login",  loginLimiter,  authControllers.login);
+app.post("/api/auth/logout", authenticate,  authControllers.logout);
 
 // Users
 app.delete("/api/users/:id", authenticate, userControllers.deleteUser);
-app.patch("/api/users/:id", authenticate, userControllers.updateUser);
+app.patch("/api/users/:id",  authenticate, userControllers.updateUser);
 
 // Accounts (all auth-required)
-app.get("/api/accounts", authenticate, accountControllers.listAccounts);
+app.get("/api/accounts",     authenticate, accountControllers.listAccounts);
 app.get("/api/accounts/:id", authenticate, accountControllers.getAccount);
-app.post("/api/accounts", authenticate, accountControllers.createAccount);
-app.patch("/api/accounts/:id", authenticate, accountControllers.updateAccount);
+app.post("/api/accounts",    authenticate, accountControllers.createAccount);
+app.patch("/api/accounts/:id",  authenticate, accountControllers.updateAccount);
 app.delete("/api/accounts/:id", authenticate, accountControllers.deleteAccount);
 
 // Transactions (all auth-required)
@@ -184,8 +209,8 @@ app.get(
 );
 
 // Categories (all auth-required)
-app.get("/api/categories", authenticate, categoryControllers.listCategories);
-app.post("/api/categories", authenticate, categoryControllers.createCategory);
+app.get("/api/categories",     authenticate, categoryControllers.listCategories);
+app.post("/api/categories",    authenticate, categoryControllers.createCategory);
 app.delete(
   "/api/categories/:id",
   authenticate,
@@ -249,6 +274,6 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`🚀  Server running at http://localhost:${PORT}`);
+  // Start background jobs only after the server is successfully listening
+  cleanupJob.start();
 });
-
-cleanupJob.start();
