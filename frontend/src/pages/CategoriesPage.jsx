@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import BackgroundVideo from "../components/BackgroundVideo";
 import { api } from "../api/api";
 import CreateCategoryModal from "../components/dashboard/CreateCategoryModal";
+import { useDelayedNavigate } from "../hooks/useDelayedNavigate";
 
 
 export default function CategoriesPage() {
@@ -60,7 +61,7 @@ export default function CategoriesPage() {
           <button
             className="btn btn-ghost"
             style={{ fontSize: "0.75rem", alignSelf: "flex-start", marginTop: "0.4rem" }}
-            onClick={() => navigate("/dashboard")}
+            onClick={() => delayedNavigate("/dashboard")}
           >
             ← Dashboard
           </button>
