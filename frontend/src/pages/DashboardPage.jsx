@@ -142,6 +142,13 @@ export default function DashboardPage({ onLogout }) {
               <button className="btn-add-account" onClick={() => setShowCreateModal(true)}>
                 + Add Account
               </button>
+
+              <button
+                className="btn-categories"
+                onClick={() => navigate("/categories")}
+              >
+                ◈ Manage Categories
+              </button>
             </>
           )}
         </main>

@@ -206,18 +206,42 @@
   background: var(--color-accent-dim);
 }
 
-/* ── Modal ── */
+/* ── Categories Button ── */
+.btn-categories {
+  margin-top: 0.75rem;
+  width: 100%;
+  padding: 0.85rem;
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius-lg);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: opacity var(--transition), transform var(--transition);
+  opacity: 0;
+  animation: fadeDown 0.5s 0.45s ease forwards;
+}
+
+.btn-categories:hover {
+  opacity: 0.85;
+}
+
+.btn-categories:active {
+  transform: scale(0.99);
+}
+
 /* ── Modal ── */
 .modal-backdrop {
   position: fixed;
   inset: 0;
   z-index: 50;
   background: rgba(0, 0, 0, 0.7);
-  /* removed backdrop-filter: blur — too expensive over a video background */
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: fadeIn 0.2s ease both; /* plain fade, no translateY */
+  animation: fadeIn 0.2s ease both;
 }
 
 .modal {
@@ -230,7 +254,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-  animation: slideUp 0.2s ease both; /* slightly snappier */
+  animation: slideUp 0.2s ease both;
 }
 
 .modal-header {
@@ -366,63 +390,69 @@
 
 /* ── ESC Hint ── */
 .esc-hint {
-position: fixed;
-bottom: 1.5rem;
-right: 1.5rem;
-font-size: 0.6rem;
-letter-spacing: 0.15em;
-text-transform: uppercase;
-color: var(--color-text-faint);
-z-index: 20;
-pointer-events: none;
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  z-index: 20;
+  pointer-events: none;
 }
 
 /* ── ESC Menu Sections ── */
 .esc-section {
-border-bottom: 1px solid var(--color-border);
-padding-bottom: 1rem;
-margin-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
 }
 
 .esc-section-toggle {
-width: 100%;
-display: flex;
-align-items: center;
-justify-content: space-between;
-background: none;
-border: none;
-color: var(--color-text);
-font-family: var(--font-mono);
-font-size: 0.85rem;
-letter-spacing: 0.05em;
-cursor: pointer;
-padding: 0.25rem 0;
-transition: color var(--transition);
-text-align: left;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  transition: color var(--transition);
+  text-align: left;
 }
 
 .esc-section-toggle:hover {
-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .esc-chevron {
-font-size: 0.7rem;
-color: var(--color-text-muted);
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
 }
 
 .esc-section-body {
-display: flex;
-flex-direction: column;
-gap: 0.75rem;
-margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
 
 /* ── Success Alert ── */
 .alert-success {
-color: #4ade80;
-font-size: 0.8rem;
-padding: 0.75rem var(--space-md);
-background: rgba(74, 222, 128, 0.06);
-border: 1px solid rgba(74, 222, 128, 0.15);
-border-radius: var(--radius-md);
+  color: #4ade80;
+  font-size: 0.8rem;
+  padding: 0.75rem var(--space-md);
+  background: rgba(74, 222, 128, 0.06);
+  border: 1px solid rgba(74, 222, 128, 0.15);
+  border-radius: var(--radius-md);
+}
+
+/* ── fadeIn keyframe (used by modal-backdrop) ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }

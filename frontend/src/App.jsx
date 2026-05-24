@@ -9,6 +9,7 @@ import {
 
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
+import CategoriesPage from "./pages/CategoriesPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import LoadingScreen from "./components/LoadingScreen";
 import RouteTransition from "./components/RouteTransition";
@@ -66,6 +67,14 @@ export default function App() {
             element={
               authed
                 ? <DashboardPage onLogout={handleLogout} />
+                : <Navigate to="/auth" replace />
+            }
+          />
+          <Route
+            path="/categories"
+            element={
+              authed
+                ? <CategoriesPage />
                 : <Navigate to="/auth" replace />
             }
           />
