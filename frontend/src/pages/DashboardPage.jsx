@@ -21,6 +21,10 @@ export default function DashboardPage({ onLogout, navigateWithTransition }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEscMenu, setShowEscMenu]   = useState(false);
 
+  // Track which account has its summary panel open (by account ID, or null).
+  // Only one panel may be open at a time.
+  const [openSummaryId, setOpenSummaryId] = useState(null);
+
   const { phase, trigger } = useP5Transition();
 
   const loadDashboard = useCallback(async () => {
@@ -69,6 +73,14 @@ export default function DashboardPage({ onLogout, navigateWithTransition }) {
     try { await api.post("/api/auth/logout"); } catch {}
     finally { onLogout?.(); }
   };
+
+  /**
+   * Toggle the summary panel for a given account.
+   * Opening a new panel automatically closes the previously open one.
+   */
+  const handleToggleSummary = useCallback((accountId) => {
+    setOpenSummaryId((prev) => (prev === accountId ? null : accountId));
+  }, []);
 
   const firstName = user?.displayName?.split(" ")[0] || "there";
 
@@ -133,8 +145,14 @@ export default function DashboardPage({ onLogout, navigateWithTransition }) {
               ) : (
                 <div className="accounts-list">
                   {accounts.map((account, i) => (
-                    <AccountCard key={account.id} account={account} index={i}
-                      onClick={() => handleSelectAccount(account)} />
+                    <AccountCard
+                      key={account.id}
+                      account={account}
+                      index={i}
+                      onClick={() => handleSelectAccount(account)}
+                      summaryOpen={openSummaryId === account.id}
+                      onToggleSummary={() => handleToggleSummary(account.id)}
+                    />
                   ))}
                 </div>
               )}
