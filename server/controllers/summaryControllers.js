@@ -52,6 +52,25 @@ const validateAccountOwnership = async (accountId, userId) => {
   return { account };
 };
 
+// ─── Date Formatting Helpers ──────────────────────────────────────────────────
+
+/**
+ * Format a Date object as 'YYYY-MM-DD' using LOCAL date parts.
+ *
+ * Why not toISOString()?
+ * toISOString() converts the date to UTC before formatting. When a Date is
+ * constructed as local midnight (e.g. new Date(2026, 5, 1)) in a UTC+ timezone,
+ * that local midnight is the *previous* UTC day, so toISOString() returns the
+ * wrong date (e.g. '2026-05-31' instead of '2026-06-01' in UTC+10).
+ * Using getFullYear/getMonth/getDate always reads local calendar values.
+ */
+const fmtLocal = (d) => {
+  const y  = d.getFullYear();
+  const m  = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+};
+
 // ─── Date Range Utilities ─────────────────────────────────────────────────────
 
 /**
@@ -68,17 +87,15 @@ const getDateRanges = (timeframe) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const fmt = (d) => d.toISOString().split("T")[0];
-
   switch (timeframe) {
     case "day": {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       return {
-        currentFrom:  fmt(today),
-        currentTo:    fmt(today),
-        previousFrom: fmt(yesterday),
-        previousTo:   fmt(yesterday),
+        currentFrom:  fmtLocal(today),
+        currentTo:    fmtLocal(today),
+        previousFrom: fmtLocal(yesterday),
+        previousTo:   fmtLocal(yesterday),
       };
     }
 
@@ -98,10 +115,10 @@ const getDateRanges = (timeframe) => {
       lastSunday.setDate(lastMonday.getDate() + 6);
 
       return {
-        currentFrom:  fmt(thisMonday),
-        currentTo:    fmt(thisSunday),
-        previousFrom: fmt(lastMonday),
-        previousTo:   fmt(lastSunday),
+        currentFrom:  fmtLocal(thisMonday),
+        currentTo:    fmtLocal(thisSunday),
+        previousFrom: fmtLocal(lastMonday),
+        previousTo:   fmtLocal(lastSunday),
       };
     }
 
@@ -110,10 +127,10 @@ const getDateRanges = (timeframe) => {
       const m = today.getMonth(); // 0-indexed
 
       return {
-        currentFrom:  fmt(new Date(y, m, 1)),
-        currentTo:    fmt(new Date(y, m + 1, 0)),
-        previousFrom: fmt(new Date(y, m - 1, 1)),
-        previousTo:   fmt(new Date(y, m, 0)),
+        currentFrom:  fmtLocal(new Date(y, m, 1)),
+        currentTo:    fmtLocal(new Date(y, m + 1, 0)),
+        previousFrom: fmtLocal(new Date(y, m - 1, 1)),
+        previousTo:   fmtLocal(new Date(y, m, 0)),
       };
     }
 
@@ -133,10 +150,10 @@ const getDateRanges = (timeframe) => {
       prevQEnd.setDate(prevQEnd.getDate() - 1);
 
       return {
-        currentFrom:  fmt(currentQStart),
-        currentTo:    fmt(currentQEnd),
-        previousFrom: fmt(prevQStart),
-        previousTo:   fmt(prevQEnd),
+        currentFrom:  fmtLocal(currentQStart),
+        currentTo:    fmtLocal(currentQEnd),
+        previousFrom: fmtLocal(prevQStart),
+        previousTo:   fmtLocal(prevQEnd),
       };
     }
 
@@ -154,7 +171,7 @@ const getDateRanges = (timeframe) => {
     default: {
       return {
         currentFrom:  "1900-01-01",
-        currentTo:    fmt(today),
+        currentTo:    fmtLocal(today),
         previousFrom: null,
         previousTo:   null,
       };
@@ -166,28 +183,37 @@ const getDateRanges = (timeframe) => {
  * Given a custom date range [from, to], compute the immediately preceding
  * period of identical duration.
  *
- * Example: Jan 1 → Jan 15 (15 days) → Dec 17 → Dec 31
+ * Example: Jan 1 → Jan 15 (15 days) → previousFrom: Dec 17, previousTo: Dec 31
  *
  * @param {string} from — 'YYYY-MM-DD'
  * @param {string} to   — 'YYYY-MM-DD'
  * @returns {{ previousFrom: string, previousTo: string }}
  */
 const getPreviousCustomRange = (from, to) => {
-  const fromDate = new Date(from);
-  const toDate   = new Date(to);
+  // Parse as local midnight (year, month-1, day) to avoid UTC-offset date shifts.
+  // new Date("YYYY-MM-DD") is treated as UTC midnight by the JS spec, which rolls
+  // the date back one calendar day in UTC+ timezones when toISOString() is called.
+  const parseLocal = (str) => {
+    const [y, m, d] = str.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  };
 
-  // Duration in whole days (inclusive)
+  const fromDate = parseLocal(from);
+  const toDate   = parseLocal(to);
+
+  // Duration in whole days (inclusive): Jun 1 → Jun 3 = 3 days
   const durationMs   = toDate.getTime() - fromDate.getTime();
   const durationDays = Math.round(durationMs / (1000 * 60 * 60 * 24)) + 1;
 
-  const prevTo   = new Date(fromDate);
+  // prevTo is the day immediately before `from`
+  const prevTo = new Date(fromDate);
   prevTo.setDate(prevTo.getDate() - 1);
 
+  // prevFrom is (durationDays - 1) days before prevTo so the span is equal
   const prevFrom = new Date(prevTo);
   prevFrom.setDate(prevFrom.getDate() - (durationDays - 1));
 
-  const fmt = (d) => d.toISOString().split("T")[0];
-  return { previousFrom: fmt(prevFrom), previousTo: fmt(prevTo) };
+  return { previousFrom: fmtLocal(prevFrom), previousTo: fmtLocal(prevTo) };
 };
 
 /**
