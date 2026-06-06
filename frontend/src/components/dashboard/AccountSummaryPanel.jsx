@@ -72,7 +72,7 @@ function PieChart({ data, size = 160, label }) {
     angle: (d.total / total) * 2 * Math.PI,
   }));
 
-  // Second pass: enforce minimum angle, then normalise so sum = 2π
+  // Second pass: enforce minimum angle, then normalize so sum = 2π
   slices = slices.map((s) => ({ ...s, angle: Math.max(s.angle, MIN_ANGLE) }));
   const angleSum = slices.reduce((s, sl) => s + sl.angle, 0);
   slices = slices.map((s) => ({ ...s, angle: (s.angle / angleSum) * 2 * Math.PI }));

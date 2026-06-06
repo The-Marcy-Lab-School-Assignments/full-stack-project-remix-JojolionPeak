@@ -183,7 +183,7 @@ function CategoryRow({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          {/* Colour swatch */}
+          {/* Color swatch */}
           <div style={{
             width: "8px", height: "8px", borderRadius: "50%",
             background: cat.color || "var(--color-text-faint)",
