@@ -1,10 +1,3 @@
-/**
- * tests/accounts.test.js
- *
- * Tests for account creation and ownership validation.
- * The DB model is mocked so no real DB connection is needed.
- */
-
 jest.mock("../models/accountModel");
 
 const accountModel = require("../models/accountModel");
@@ -82,7 +75,6 @@ describe("getAccount", () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ id: "acc-1", accountName: "Checking" })
     );
-    // userId should be stripped from the response
     expect(res.json.mock.calls[0][0]).not.toHaveProperty("userId");
   });
 });

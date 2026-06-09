@@ -2,14 +2,12 @@ jest.mock("../models/userModel");
 jest.mock("../models/tokenDenylistModel");
 jest.mock("bcryptjs");
 
-const userModel    = require("../models/userModel");
-const bcrypt       = require("bcryptjs");
+const userModel = require("../models/userModel");
+const bcrypt = require("bcryptjs");
 const { signup, login } = require("../controllers/authControllers");
 
-// Builds a fake req object
 const makeReq = (body = {}) => ({ body, cookies: {} });
 
-// Builds a fake res object that records what was sent
 const makeRes = () => {
   const res = {};
   res.status = jest.fn().mockReturnValue(res);
